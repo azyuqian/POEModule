@@ -26,9 +26,9 @@ MCP3008_CH7 = 7
 MCP3008_CS0 = 0
 MCP3008_CS1 = 1
 
-ACC_X_CH = CH0
-ACC_Y_CH = CH1
-ACC_Z_CH = CH2
+ACC_X_CH = MCP3008_CH0
+ACC_Y_CH = MCP3008_CH1
+ACC_Z_CH = MCP3008_CH2
 
 # Commands and operation modes
 MCP3008_START = 0x01
@@ -66,10 +66,6 @@ def ConvertAcc(raw_acc):
 
 # Main code:
 def read_acc(delay):
-    # Open SPI bus
-    spi = spidev.SpiDev()
-    spi.open(0, MCP3008_CS0)
-
     while True:
 
         # Read accelerometer data
@@ -89,3 +85,8 @@ def read_acc(delay):
         # Wait before repeating loop
         time.sleep(delay)
  
+# Open SPI bus
+spi = spidev.SpiDev()
+spi.open(0, MCP3008_CS0)
+
+read_acc(0.2)
