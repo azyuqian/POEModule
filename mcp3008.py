@@ -1,10 +1,9 @@
-#!/usr/bin/python
-#--------------------------------------   
-# This script reads data from a 
-# MCP3008 ADC device using the SPI bus.
+#!/home/pi
+#--------------------------------------------------------------------  
+# This script provides interface with 8-channel ADC converter MCP3008 
 #
-# Author : Matt Hawkins
-# Date   : 13/10/2013
+# Author : Yaodong Yu
+# Date   : Nov.13, 2014
 #
 # http://www.raspberrypi-spy.co.uk/
 #
@@ -14,74 +13,79 @@ import spidev
 import time
 import os
 
-# Open SPI bus
-spi = spidev.SpiDev()
-spi.open(0,0)
+# Channel names and chip select
+MCP3008_CH0 = 0
+MCP3008_CH1 = 1
+MCP3008_CH2 = 2
+MCP3008_CH3 = 3
+MCP3008_CH4 = 4
+MCP3008_CH5 = 5
+MCP3008_CH6 = 6
+MCP3008_CH7 = 7
+
+MCP3008_CS0 = 0
+MCP3008_CS1 = 1
+
+ACC_X_CH = CH0
+ACC_Y_CH = CH1
+ACC_Z_CH = CH2
+
+# Commands and operation modes
+MCP3008_START = 0x01
+#MCP3008_DIFF = 0x0
+MCP3008_SINGLE = 0x8
+
+# Sensor sample rate
+
 
 # Function to read SPI data from MCP3008 chip
-# Channel must be an integer 0-7
+# Param(in): channel - must be an integer 0-7
 def ReadChannel(channel):
-  adc = spi.xfer2([1,(8+channel)<<4,0])
-  data = ((adc[1]&3) << 8) + adc[2]
-  return data
 
-# Function to convert data to voltage level,
-# rounded to specified number of decimal places. 
-def ConvertVolts(data,places):
-  volts = (data * 3.3) / float(1023)
-  volts = round(volts,places)  
-  return volts
+    # 3-byte command to read a 10 bit data from MCP3008:
+    # 1st byte contains only Start Bit, then operation mode and channel select
+    adc = spi.xfer2([MCP3008_START, (MCP3008_SINGLE + channel) << 4, 0])
+
+    # last 10 bits out of 3 bytes are received data
+    data = ((adc[1] & 0x03) << 8) + adc[2]
+
+    return data
   
-# Function to calculate temperature from
-# TMP36 data, rounded to specified
-# number of decimal places.
-def ConvertTemp(data,places):
 
-  # ADC Value
-  # (approx)  Temp  Volts
-  #    0      -50    0.00
-  #   78      -25    0.25
-  #  155        0    0.50
-  #  233       25    0.75
-  #  310       50    1.00
-  #  388       75    1.25
-  #  465      100    1.50
-  #  543      125    1.75
-  #  620      150    2.00
-  #  698      175    2.25
-  #  775      200    2.50
-  #  853      225    2.75
-  #  930      250    3.00
-  # 1008      275    3.25
-  # 1023      280    3.30
 
-  temp = ((data * 330)/float(1023))-50
-  temp = round(temp,places)
-  return temp
-  
-# Define sensor channels
-light_channel = 0
-temp_channel  = 1
+# TO-DO(yyu): The following code should be modified and moved to a higher
+#               level script
 
-# Define delay between readings
-delay = 5
+# Function to convert 10-bit digital accelerometer data to meaningful info
+def ConvertAcc(raw_acc):
+    # TO-DO: need to decide what information we want to convert to
+    #       - degree? (for gyro)
+    #       - accelerometer? (for vibration)
+    return raw_acc
 
-while True:
 
-  # Read the light sensor data
-  light_level = ReadChannel(light_channel)
-  light_volts = ConvertVolts(light_level,2)
+# Main code:
+def read_acc(delay):
+    # Open SPI bus
+    spi = spidev.SpiDev()
+    spi.open(0, MCP3008_CS0)
 
-  # Read the temperature sensor data
-  temp_level = ReadChannel(temp_channel)
-  temp_volts = ConvertVolts(temp_level,2)
-  temp       = ConvertTemp(temp_level,2)
+    while True:
 
-  # Print out results
-  print "--------------------------------------------"  
-  print("LightLevel : {}".format(light_level))  
-#  print("Temp  : {} ({}V) {} deg C".format(temp_level,temp_volts,temp))    
+        # Read accelerometer data
+        temp_acc_x = ReadChannel(ACC_X_CH)
+        temp_acc_y = ReadChannel(ACC_Y_CH)
+        temp_acc_z = ReadChannel(ACC_Z_CH)
 
-  # Wait before repeating loop
-  time.sleep(delay)
+        # Convert accelerometer from 0~1023 to meaningful measurement
+        acc_x = ConvertAcc(temp_acc_x)
+        acc_y = ConvertAcc(temp_acc_y)
+        acc_z = ConvertAcc(temp_acc_z)
+
+        # Print out results
+        print "--------------------------------------------"  
+        print("Accelerometer: x - {}, y - {} , z - {}".format(acc_x, acc_y, acc_z))  
+
+        # Wait before repeating loop
+        time.sleep(delay)
  
