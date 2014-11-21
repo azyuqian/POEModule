@@ -1,7 +1,9 @@
 #!/bin/python
 import getopt
 import sys
+import json
 from coapthon2.client.coap_protocol import HelperClient
+
 
 client = HelperClient(server=("localhost", 5683))
 
@@ -10,10 +12,14 @@ def client_callback(response):
     print "Client Callback"
     print response
 
+    deserialized_rsp = json.loads(response.payload)
+    print deserialized_rsp['time']
+    print type(deserialized_rsp['time'])
+
 
 def main():
     op = 'GET'
-    path = '/hello'
+    path = '/time' # or '/acceleration' or '/hello'
     payload = None
 
     if op == "GET":
