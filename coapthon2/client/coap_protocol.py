@@ -33,7 +33,8 @@ application.setComponent(ILogObserver, FileLogObserver(logfile).emit)
 
 
 class CoAP(DatagramProtocol):
-    def __init__(self, server, forward):
+    def __init__(self, server, forward=True, log=False):
+        self.log = log
         self._forward = forward
         self.received = {}
         self.sent = {}
@@ -112,7 +113,11 @@ class CoAP(DatagramProtocol):
 
     def start(self, host):
         #self.transport.connect(host, self.server[1])
-        function, args, kwargs, client_callback = self.get_operation()
+        operations = self.get_operation()
+        if not any(operations):
+            return
+
+        function, args, kwargs, client_callback = operations
         function(client_callback, *args, **kwargs)
 
     def start_test(self, transport):
@@ -141,10 +146,11 @@ class CoAP(DatagramProtocol):
         serializer = Serializer()
         message.destination = self.server
         host, port = message.destination
-        print "Message sent to " + host + ":" + str(port)
-        print "----------------------------------------"
-        print message
-        print "----------------------------------------"
+        if self.log:
+          print "Message sent to " + host + ":" + str(port)
+          print "----------------------------------------"
+          print message
+          print "----------------------------------------"
         datagram = serializer.serialize(message)
         log.msg("Send datagram")
         self.transport.write(datagram, self.server)
@@ -167,10 +173,11 @@ class CoAP(DatagramProtocol):
         serializer = Serializer()
         host, port = host
         message = serializer.deserialize(datagram, host, port)
-        print "Message received from " + host + ":" + str(port)
-        print "----------------------------------------"
-        print message
-        print "----------------------------------------"
+        if self.log:
+          print "Message received from " + host + ":" + str(port)
+          print "----------------------------------------"
+          print message
+          print "----------------------------------------"
         if isinstance(message, Response):
             self.handle_response(message)
         elif isinstance(message, Request):
