@@ -50,6 +50,9 @@ C3 = -0.0000015955 # for 12 Bit
 T1 =  0.01      # for 14 Bit @ 5V
 T2 =  0.00008   # for 14 Bit @ 5V
 
+SHT15_GPIO_SDA = 11
+SHT15_GPIO_SCLK = 7
+
 class Sht1x(object):
     GPIO_BOARD = GPIO.BOARD
     GPIO_BCM = GPIO.BCM
@@ -72,8 +75,7 @@ class Sht1x(object):
         GPIO.cleanup()
         
         return rawTemperature * D2 + D1
-    
-    
+
     def read_humidity(self):
         #        Get current temperature for humidity correction
         temperature = self.read_temperature_C()
@@ -220,13 +222,18 @@ class WaitingSht1x(Sht1x):
             time.sleep(1 - lastInvocationDelta)
         self.__lastInvocationTime = time.time()
 
-def main():
-    sht1x = WaitingSht1x(11, 7)
-    print(sht1x.read_temperature_C())
-    print(sht1x.read_humidity())
-    aTouple = sht1x.read_temperature_and_Humidity()
-    print("Temperature: {} Humidity: {}".format(aTouple[0], aTouple[1]))
-    print(sht1x.calculate_dew_point(20, 50))
+class WaitingSht15(WaitingSht1x):
+    def __init__(self, dataPin = SHT15_GPIO_SDA, sckPin = SHT15_GPIO_SCLK):
+        super(WaitingSht15, self).__init__(self, dataPin, sckPin)
+        self.__lastInvocationTime = 0
 
-if __name__ == '__main__':
-    main()
+#def main():
+#    sht1x = WaitingSht1x(11, 7)
+#    print(sht1x.read_temperature_C())
+#    print(sht1x.read_humidity())
+#    aTouple = sht1x.read_temperature_and_Humidity()
+#    print("Temperature: {} Humidity: {}".format(aTouple[0], aTouple[1]))
+#    print(sht1x.calculate_dew_point(20, 50))
+
+#if __name__ == '__main__':
+#    main()

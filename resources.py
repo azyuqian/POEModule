@@ -2,7 +2,7 @@ import time
 import json
 from coapthon2.resources.resource import Resource
 from sensors.mcp3008 import MCP3008
-from sensors.temp_sensor import WaitingSht1x
+from sensors.temp_sensor import WaitingSht15
 
 
 class Acceleration(Resource):
@@ -13,7 +13,7 @@ class Acceleration(Resource):
 
     def render_GET(self, request, query=None):
         x, y, z = self.sensor.acceleration()
-        return response
+        return json.dumps({"x": x, "y": y, "z":z})
 
 
 class HelloWorld(Resource):
@@ -37,11 +37,11 @@ class Temp_Humidity(Resource):
     def __init__(self, name="Temp_HumidityResource"):
         super(Temp_Humidity, self).__init__(name, visible=True, observable=True, allow_children=False)
 
-        temp_hum = WaitingSht1x()
+        temp_hum = WaitingSht15()
 
     def render_GET(self, request, query=None):
-        temp, hum = self.temp_hum.read_temperature_and_Humidity()
-        return response
+        temp, humidity = self.temp_hum.read_temperature_and_Humidity()
+        return json.dumps({"temperature": temp, "humidity": humidity})
         
         
     
