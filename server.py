@@ -10,6 +10,7 @@ class CoAPServer(CoAP):
         self.add_resource('hello/', HelloWorld())
         self.add_resource('acceleration/', Acceleration())
         self.add_resource('time/', LocalTime())
+        self.add_resource('humidity/', Humidity())
 
         print "CoAP Server start on " + host + ":" + str(port)
         print(self.root.dump())
