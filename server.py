@@ -1,7 +1,7 @@
 from twisted.internet import reactor
 from coapthon2 import defines
 from coapthon2.server.coap_protocol import CoAP
-from resources import Acceleration, HelloWorld, LocalTime
+from resources import Acceleration, HelloWorld, LocalTime, Temp_Humidity
 
 
 class CoAPServer(CoAP):
@@ -10,6 +10,7 @@ class CoAPServer(CoAP):
         self.add_resource('hello/', HelloWorld())
         self.add_resource('acceleration/', Acceleration())
         self.add_resource('time/', LocalTime())
+        self.add_resource('temp_hum/', Temp_Humidity())
 
         print "CoAP Server start on " + host + ":" + str(port)
         print(self.root.dump())
