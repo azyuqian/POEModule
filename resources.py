@@ -2,6 +2,7 @@ import time
 import json
 from coapthon2.resources.resource import Resource
 from sensors.mcp3008 import MCP3008
+from sensors.temp_sensor import WaitingSht1x
 
 
 class Acceleration(Resource):
@@ -16,7 +17,7 @@ class Acceleration(Resource):
 
 
 class HelloWorld(Resource):
-    def __init__(self, name="AccelerationResource"):
+    def __init__(self, name="HelloWorldResource"):
         super(HelloWorld, self).__init__(name, visible=True, observable=True, allow_children=False)
 
     def render_GET(self, request, query=None):
@@ -31,3 +32,16 @@ class LocalTime(Resource):
         current_time = time.time()
         print current_time
         return json.dumps({"time": current_time})
+
+class Temp_Humidity(Resource):
+    def __init__(self, name="Temp_HumidityResource"):
+        super(Temp_Humidity, self).__init__(name, visible=True, observable=True, allow_children=False)
+
+        temp_hum = WaitingSht1x()
+
+    def render_GET(self, request, query=None):
+        temp, hum = self.temp_hum.read_temperature_and_Humidity()
+        return response
+        
+        
+    
