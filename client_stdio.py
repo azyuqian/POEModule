@@ -82,7 +82,7 @@ class WebCheckerCommandProtocol(basic.LineReceiver):
         reactor.stop()
 
 
-protocol = CoAP(("127.0.0.1", 5683))
+protocol = CoAP(("192.168.2.20", 5683))
 reactor.listenUDP(0, protocol)
 
 # For multicast(not tested)
