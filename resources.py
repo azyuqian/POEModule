@@ -32,6 +32,24 @@ class LocalTime(Resource):
         print current_time
         return json.dumps({"time": current_time})
 
+class Temperature(Resource):
+    temperature = WaitingSht15()
+    def __init__(self, name="TemperatureResource"):
+        super(Temperature, self).__init__(name, visible=True, observable=True, allow_children=False)
+
+    def render_GET(self, request, query=None):
+        temp = self.temperature.read_temperature_C()
+        return json.dumps({"temperature": temp})
+
+class Humidity(Resource):
+    humidity = WaitingSht15()
+    def __init__(self, name="HumidityResource"):
+        super(Humidity, self).__init__(name, visible=True, observable=True, allow_children=False)
+
+    def render_GET(self, request, query=None):
+        hum = self.humidity.read_humidity()
+        return json.dumps({"humidity": hum})
+        
 class Temp_Humidity(Resource):
     temp_hum = WaitingSht15()
     def __init__(self, name="Temp_HumidityResource"):
