@@ -32,6 +32,7 @@ class LocalTime(Resource):
         print current_time
         return json.dumps({"time": current_time})
 
+# FIXME: SHT15 should be combined and implemented in a single class, differentiated by request
 class Temperature(Resource):
     temperature = WaitingSht15()
     def __init__(self, name="TemperatureResource"):
