@@ -27,6 +27,19 @@ class MCP3008(SPIDevice):
 #   MCP3008_DIFF = 0x0
     MCP3008_SINGLE = 0x8
 
+    # Accelerometer definitions
+    ACC_X_CH = MCP3008_CH0
+    ACC_Y_CH = MCP3008_CH1
+    ACC_Z_CH = MCP3008_CH2
+    AXIS_X = 0
+    AXIS_Y = 1
+    AXIS_Z = 2
+    # Digital data received is in range 0~1023:
+    # Reference point zero acceleration on x, y, z axis, number below reference point represents negative acceleration
+    ZERO_G_REF = [512, 502, 522]
+    # delta per g (m/s^2)
+    DELTA_PER_G = [102, 104, 102]
+
     def _read_channel_raw(self, channel):
         self.spi.open(0, self.MCP3008_CS0)
 
@@ -41,17 +54,16 @@ class MCP3008(SPIDevice):
         return data
 
     def _read_channel(self, channel):
-        # TO-DO: need to decide what information we want to convert to
-        #       - degree? (for gyro)
-        #       - accelerometer? (for vibration)
         return self._read_channel_raw(channel)
 
-    def acceleration(self):
-        ACC_X_CH = self.MCP3008_CH0
-        ACC_Y_CH = self.MCP3008_CH1
-        ACC_Z_CH = self.MCP3008_CH2
+    #TO-DO: This structure may have some issues. Accelerometer device should be an individual class
+    #       based on MCP3008 channels
+    def _convert_raw_to_g(self, raw_acc, axis):
+        return (float(raw_acc - self.ZERO_G_REF[axis])) / self.DELTA_PER_G[axis]
 
-        x = self._read_channel(ACC_X_CH)
-        y = self._read_channel(ACC_Y_CH)
-        z = self._read_channel(ACC_Z_CH)
+    def acceleration(self):
+        # Raw data is converted to g (m/s^2) before output
+        x = self._convert_raw_to_g(self._read_channel(self.ACC_X_CH), self.AXIS_X)
+        y = self._convert_raw_to_g(self._read_channel(self.ACC_Y_CH), self.AXIS_Y)
+        z = self._convert_raw_to_g(self._read_channel(self.ACC_Z_CH), self.AXIS_Z)
         return x, y, z
