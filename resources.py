@@ -6,10 +6,9 @@ from sensors.temp_sensor import WaitingSht15
 
 
 class Acceleration(Resource):
+    sensor = MCP3008()
     def __init__(self, name="AccelerationResource"):
         super(Acceleration, self).__init__(name, visible=True, observable=True, allow_children=False)
-
-        sensor = MCP3008()
 
     def render_GET(self, request, query=None):
         x, y, z = self.sensor.acceleration()
@@ -34,14 +33,10 @@ class LocalTime(Resource):
         return json.dumps({"time": current_time})
 
 class Temp_Humidity(Resource):
+    temp_hum = WaitingSht15()
     def __init__(self, name="Temp_HumidityResource"):
         super(Temp_Humidity, self).__init__(name, visible=True, observable=True, allow_children=False)
-
-        temp_hum = WaitingSht15()
 
     def render_GET(self, request, query=None):
         temp, humidity = self.temp_hum.read_temperature_and_Humidity()
         return json.dumps({"temperature": temp, "humidity": humidity})
-        
-        
-    

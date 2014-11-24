@@ -24,7 +24,7 @@ class MCP3008(SPIDevice):
 
     # Commands and operation modes
     MCP3008_START = 0x01
-    #MCP3008_DIFF = 0x0
+#   MCP3008_DIFF = 0x0
     MCP3008_SINGLE = 0x8
 
     def _read_channel_raw(self, channel):
@@ -32,7 +32,7 @@ class MCP3008(SPIDevice):
 
         # 3-byte command to read a 10 bit data from MCP3008:
         # 1st byte contains only Start Bit, then operation mode and channel select
-        adc = spi.xfer2([self.MCP3008_START, (self.MCP3008_SINGLE + channel) << 4, 0])
+        adc = self.spi.xfer2([self.MCP3008_START, (self.MCP3008_SINGLE + channel) << 4, 0])
 
         # last 10 bits out of 3 bytes are received data
         data = ((adc[1] & 0x03) << 8) + adc[2]

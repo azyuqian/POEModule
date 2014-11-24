@@ -224,7 +224,7 @@ class WaitingSht1x(Sht1x):
 
 class WaitingSht15(WaitingSht1x):
     def __init__(self, dataPin = SHT15_GPIO_SDA, sckPin = SHT15_GPIO_SCLK):
-        super(WaitingSht15, self).__init__(self, dataPin, sckPin)
+        super(WaitingSht15, self).__init__(dataPin, sckPin)
         self.__lastInvocationTime = 0
 
 #def main():
