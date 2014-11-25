@@ -50,8 +50,8 @@ C3 = -0.0000015955 # for 12 Bit
 T1 =  0.01      # for 14 Bit @ 5V
 T2 =  0.00008   # for 14 Bit @ 5V
 
-SHT15_GPIO_SDA = 11
-SHT15_GPIO_SCLK = 7
+SHT15_PIN_SDA = 11  # Pin 11 = GPIO 17
+SHT15_PIN_SCLK = 7  # PIn 7 = GPIO 4
 
 class Sht1x(object):
     GPIO_BOARD = GPIO.BOARD
@@ -223,7 +223,7 @@ class WaitingSht1x(Sht1x):
         self.__lastInvocationTime = time.time()
 
 class WaitingSht15(WaitingSht1x):
-    def __init__(self, dataPin = SHT15_GPIO_SDA, sckPin = SHT15_GPIO_SCLK):
+    def __init__(self, dataPin = SHT15_PIN_SDA, sckPin = SHT15_PIN_SCLK):
         super(WaitingSht15, self).__init__(dataPin, sckPin)
         self.__lastInvocationTime = 0
 

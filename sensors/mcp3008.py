@@ -56,7 +56,7 @@ class MCP3008(SPIDevice):
     def _read_channel(self, channel):
         return self._read_channel_raw(channel)
 
-    #TO-DO: This structure may have some issues. Accelerometer device should be an individual class
+    # FIXME: This structure may have some issues. Accelerometer device should be an individual class /
     #       based on MCP3008 channels
     def _convert_raw_to_g(self, raw_acc, axis):
         return (float(raw_acc - self.ZERO_G_REF[axis])) / self.DELTA_PER_G[axis]
