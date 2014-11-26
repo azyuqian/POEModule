@@ -61,13 +61,13 @@ class WebCheckerCommandProtocol(basic.LineReceiver):
         self.sendLine('Goodbye.')
         self.transport.loseConnection()
 
-    def callback(self, response):
+    def response_callback(self, response):
         print response.payload
 
     def do_get(self, url):
         """get <url>: Get a resource"""
         try:
-            protocol.get(self.callback, '/' + url)
+            protocol.get(self.response_callback, '/' + url)
         except:
             print traceback.format_exc()
 
