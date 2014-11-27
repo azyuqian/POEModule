@@ -63,6 +63,9 @@ class WebCheckerCommandProtocol(basic.LineReceiver):
 
     def response_callback(self, response):
         print response.payload
+        with open('data.txt',"a+") as output_file:
+            output_file.write(response.payload + "\n")
+        output_file.close
 
     def do_get(self, url):
         """get <url>: Get a resource"""
