@@ -1,1 +1,3 @@
-spidev
+#spidev
+aiocoap
+RPi.GPIO
