@@ -41,8 +41,8 @@ class LocalTime(Resource):
 class Temperature(Resource):
     temperature = WaitingSht15()
 
-    def __init__(self, name="TemperatureResource"):
-        super(Temperature, self).__init__(name, visible=True, observable=True, allow_children=False)
+    def __init__(self, name="TemperatureResource", obs=True):
+        super(Temperature, self).__init__(name, visible=True, observable=obs, allow_children=False)
 
     def render_GET(self, request, query=None):
         temp = self.temperature.read_temperature_C()
