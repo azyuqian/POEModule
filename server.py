@@ -1,28 +1,50 @@
-from twisted.internet import reactor
-from coapthon2 import defines
-from coapthon2.server.coap_protocol import CoAP
-from resources import Acceleration, HelloWorld, LocalTime, Temperature, Humidity, Temp_Humidity
+#!/usr/bin/env python3
 
-class CoAPServer(CoAP):
-    def __init__(self, host, port, multicast=False):
-        CoAP.__init__(self, multicast)
-        self.add_resource('hello/', HelloWorld())
-        self.add_resource('acceleration/', Acceleration())
-        self.add_resource('time/', LocalTime())
-        self.add_resource('temp_hum/', Temp_Humidity())
-        self.add_resource('temperature/', Temperature())
-        self.add_resource('humidity/', Humidity())
+# This file is part of the Python aiocoap library project.
+#
+# Copyright (c) 2012-2014 Maciej Wasilak <http://sixpinetrees.blogspot.com/>,
+#               2013-2014 Christian Amsüss <c.amsuess@energyharvesting.at>
+#
+# aiocoap is free software, this file is published under the MIT license as
+# described in the accompanying LICENSE file.
 
-        print "CoAP Server start on " + host + ":" + str(port)
-        print(self.root.dump())
+import logging
+
+
+import asyncio
+
+
+import aiocoap
+from aiocoap.resource import Site
+
+
+import resources as r
+
+
+# logging setup
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("coap-server").setLevel(logging.DEBUG)
 
 
 def main():
-    server = CoAPServer("192.168.2.20", 5683)
-    #reactor.listenMulticast(5683, server, listenMultiple=True)
-    reactor.listenUDP(5683, server, "192.168.2.20")
-    reactor.run()
+    # Resource tree creation
+    root = Site()
+
+    root.add_resource(('.well-known', 'core'), r.CoreResource(root))
+    root.add_resource(('time',), r.LocalTime())
+    root.add_resource(('hello',), r.HelloWorld())
+    #root.add_resource(('acceleration',), r.Acceleration())
+    #root.add_resource(('temp_hum',), r.TemperatureHumidityResource())
+    #root.add_resource(('temperature',), r.TemperatureResource())
+    #root.add_resource(('humidity',), r.HumidityResource())
+
+    #root.add_resource(('other', 'block'), BlockResource())
+    #root.add_resource(('other', 'separate'), SeparateLargeResource())
+
+    asyncio.async(aiocoap.Context.create_server_context(root))
+
+    asyncio.get_event_loop().run_forever()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
