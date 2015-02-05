@@ -45,10 +45,8 @@ class Temperature(Resource):
         super(Temperature, self).__init__(name, visible=True, observable=obs, allow_children=False)
 
     def render_GET(self, request, query=None):
-        self.payload = self.temperature.read_temperature_C()
-        return self.payload
-        #        temp = self.temperature.read_temperature_C()
-        #        return json.dumps({"temperature": format(temp, FLOAT_FORMAT)})
+        temp = self.temperature.read_temperature_C()
+        return json.dumps({"temperature": format(temp, FLOAT_FORMAT)})
 
 
 class Humidity(Resource):
