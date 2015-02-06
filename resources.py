@@ -6,8 +6,8 @@ import asyncio
 import aiocoap.resource as resource
 import aiocoap
 
-#from sensors.mcp3008 import MCP3008
-#from sensors.temp_sensor import WaitingSht15
+from sensors.mcp3008 import MCP3008
+from sensors.temp_sensor import WaitingSht15
 
 
 FLOAT_FORMAT = '.2f'
@@ -35,24 +35,28 @@ class CoreResource(resource.Resource):
         response.opt.content_format = 40
         return response
 
-## TODO: It seems spidev cannot be compiled under Python3.4, pls confirm this.
-##       We, might need to find an alternative for spidev library.
-#class Acceleration(resource.Resource):
-    #sensor = MCP3008()
+class Acceleration(resource.ObservableResource):
+    sensor = MCP3008()
 
-    #def __init__(self):
-        #super(Acceleration, self).__init__()
+    def __init__(self):
+        super(Acceleration, self).__init__()
+        self.observe_period = 1
+        self.notify()
+    
+    def notify(self):
+        self.updated_state()
+        asyncio.get_event_loop().call_later(self.observe_period, self.notify)
 
-    #@asyncio.coroutine
-    #def render_GET(self, request):
-        #x, y, z = self.sensor.acceleration()
-        #payload = json.dumps(\
-                            #[{"x": format(x, FLOAT_FORMAT)}, \
-                              #{"y": format(y, FLOAT_FORMAT)}, \
-                              #{"z": format(z, FLOAT_FORMAT)}], \
-                              #sort_keys=True).encode('utf8')
-        #response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        #return response
+    @asyncio.coroutine
+    def render_GET(self, request):
+        x, y, z = self.sensor.acceleration()
+        payload = json.dumps(\
+                            [{"x": format(x, FLOAT_FORMAT)}, \
+                              {"y": format(y, FLOAT_FORMAT)}, \
+                              {"z": format(z, FLOAT_FORMAT)}], \
+                              sort_keys=True).encode('utf8')
+        response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
+        return response
 
 
 class HelloWorld(resource.Resource):
@@ -113,36 +117,63 @@ class LocalTime(resource.ObservableResource):
 
 
 ## FIXME: SHT15 should be combined and implemented in a single class, differentiated by request
-#class Temperature(resource.Resource):
-    #temperature = WaitingSht15()
+class Temperature(resource.ObservableResource):
+    temperature = WaitingSht15()
 
-    #def __init__(self, name="TemperatureResource"):
-        #super(Temperature, self).__init__(name, visible=True, observable=True, allow_children=False)
-
-    #@asyncio.coroutine
-    #def render_GET(self, request, query=None):
-        #temp = self.temperature.read_temperature_C()
-        #return json.dumps({"temperature": format(temp, FLOAT_FORMAT)})
-
-
-#class Humidity(resource.Resource):
-    #humidity = WaitingSht15()
-
-    #def __init__(self, name="HumidityResource"):
-        #super(Humidity, self).__init__(name, visible=True, observable=True, allow_children=False)
-
-    #def render_GET(self, request):
-        #humidity = self.humidity.read_humidity()
-        #return json.dumps({"temperature": format(humidity, FLOAT_FORMAT)})
+    def __init__(self):
+        super(Temperature, self).__init__()
+        self.observe_period = 3
+        self.notify()
+    
+    def notify(self):
+        self.updated_state()
+        asyncio.get_event_loop().call_later(self.observe_period, self.notify)
+    
+    @asyncio.coroutine
+    def render_GET(self, request, query=None):
+        temp = self.temperature.read_temperature_C()
+        payload = json.dumps({"temperature": format(temp, FLOAT_FORMAT)}).encode('utf8')
+        response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
+        return response
 
 
-#class Temp_Humidity(resource.Resource):
-    #temp_hum = WaitingSht15()
+class Humidity(resource.ObservableResource):
+    humidity = WaitingSht15()
 
-    #def __init__(self, name="Temp_HumidityResource"):
-        #super(Temp_Humidity, self).__init__(name, visible=True, observable=True, allow_children=False)
+    def __init__(self):
+        super(Humidity, self).__init__()
+        self.observe_period = 3
+        self.notify()
+    
+    def notify(self):
+        self.updated_state()
+        asyncio.get_event_loop().call_later(self.observe_period, self.notify)
+    
+    @asyncio.coroutine
+    def render_GET(self, request):
+        humidity = self.humidity.read_humidity()
+        payload = json.dumps({"Humidity": format(humidity, FLOAT_FORMAT)}).encode('utf8')
+        response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
+        return response
 
-    #def render_GET(self, request):
-        #temp, humidity = self.temp_hum.read_temperature_and_Humidity()
-        #return json.dumps([{"temperature": format(temp, FLOAT_FORMAT)}, \
-                           #{"humidity": format(humidity, FLOAT_FORMAT)}], sort_keys=True)
+class Temp_Humidity(resource.ObservableResource):
+    temp_hum = WaitingSht15()
+    
+    def __init__(self):
+        super(Temp_Humidity, self).__init__()
+        self.observe_period = 3
+        self.notify()
+    
+    def notify(self):
+        self.updated_state()
+        asyncio.get_event_loop().call_later(self.observe_period, self.notify)
+    
+    def render_GET(self, request):
+        temp, humidity = self.temp_hum.read_temperature_and_Humidity()
+        payload = json.dumps([{"temperature": format(temp, FLOAT_FORMAT)}, \
+                           {"humidity": format(humidity, FLOAT_FORMAT)}], sort_keys=True).encode('utf8')
+        response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
+        return response
+
+
+
