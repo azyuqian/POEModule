@@ -6,6 +6,7 @@ import asyncio
 import aiocoap.resource as resource
 import aiocoap
 
+from resources_def import PayloadTable
 from sensors.mcp3008 import MCP3008
 from sensors.temp_sensor import WaitingSht15
 
