@@ -1,3 +1,4 @@
+#import json
 
 NAME_FIELD = "name"
 ACTIVE_FIELD = "active"
@@ -11,7 +12,15 @@ class PayloadTable(dict):
         dict.__setitem__(self, NAME_FIELD, name)
         dict.__setitem__(self, ACTIVE_FIELD, False)
         dict.__setitem__(self, SAMPLE_R_FIELD, 0)
-        dict.__setitem__(self, DATA_FIELD, "")
+        dict.__setitem__(self, DATA_FIELD, "")  # json.dumps('')
+        dict.__setitem__(self, TIME_FIELD, "")
+
+    def __init__(self, name, is_active, rate):
+        dict.__init__(self)
+        dict.__setitem__(self, NAME_FIELD, name)
+        dict.__setitem__(self, ACTIVE_FIELD, is_active)
+        dict.__setitem__(self, SAMPLE_R_FIELD, rate)
+        dict.__setitem__(self, DATA_FIELD, "")  # json.dumps('')
         dict.__setitem__(self, TIME_FIELD, "")
 
     def __missing__(self, key):
