@@ -1,4 +1,7 @@
 #import json
+from enum import Enum
+
+UTF8 = 'utf-8'
 
 NAME_FIELD = "name"
 ACTIVE_FIELD = "active"
@@ -40,3 +43,13 @@ class PayloadTable(dict):
 
     def set_time(self, time):
         dict.__setitem__(self, TIME_FIELD, time)
+
+# CoAP content format codes by media types
+# Reference [RFC7252, Section 12.3]: http://tools.ietf.org/html/rfc7252
+class CoapContentFormats(Enum):
+    # plain text/string encoded in utf-8
+    TEXT_PLAIN = 0
+    # application/link-format: describe hosted resources, attributes and relationships
+    LINK_FORMAT = 40
+    # application/json
+    JSON = 50
