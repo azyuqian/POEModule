@@ -144,6 +144,8 @@ class LocalTime(resource.ObservableResource):
         if (args[0] == 'period') and (args[1].isdigit() and args[1] != '0'):
             # FIXME: if period = 0, observation should be disabled
             self.observe_period = int(args[1])
+            # PUT new value to non-data field requires updating payload wrapper content
+            self.payload.set_sample_rate(self.observe_period)
         else:
             return err_response
 
