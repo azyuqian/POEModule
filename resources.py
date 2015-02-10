@@ -107,6 +107,7 @@ class LocalTime(resource.ObservableResource):
         if len(args) != 2:
             return err_response
 
+        # Observe with period = 0 is not allowed
         if (args[0] == 'period') and (args[1].isdigit() and args[1] != '0'):
             # FIXME: if period = 0, observation should be disabled
             self.observe_period = int(args[1])
@@ -170,8 +171,8 @@ class Acceleration(resource.ObservableResource):
         if len(args) != 2:
             return err_response
 
+        # Observe with period = 0 is not allowed
         if (args[0] == 'period') and (args[1].isdigit() and args[1] != '0'):
-            # FIXME: if period = 0, observation should be disabled
             self.observe_period = int(args[1])
             # PUT new value to non-data field requires updating payload wrapper content
             self.payload.set_sample_rate(self.observe_period)
@@ -246,8 +247,9 @@ class Temperature(resource.ObservableResource):
         #print("PUT %s to resource" % request.payload)
         # FIXME: This should probably be formatted with corresponding error code
         # FIXME: Various error messages for different PUT methods
-        err_msg = ("argument is not correctly formatted. Follow 'period [sec]' to " \
-                   "update period to observe 'temperature' resource\n\n").encode(UTF8)
+        err_msg = ("argument is not correctly formatted.\n\n"                           \
+                   "Follow 'period [sec]' to update period to observe 'temperature'"    \
+                   "resource. [sec] > 2.\n\n").encode(UTF8)
         err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
         err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
 
@@ -255,9 +257,14 @@ class Temperature(resource.ObservableResource):
         if len(args) != 2:
             return err_response
 
+        # Observe with period = 0 is not allowed
         if (args[0] == 'period') and (args[1].isdigit() and args[1] != '0'):
-            # FIXME: if period = 0, observation should be disabled
-            self.observe_period = int(args[1])
+            new_period = int(args[1])
+            # Physical constraint of the sensor does not allow update faster than 1 sec;
+            #   double the value to improve reliability
+            if new_period <= 2:
+                return err_response
+            self.observe_period = new_period
             # PUT new value to non-data field requires updating payload wrapper content
             self.payload.set_sample_rate(self.observe_period)
         elif args[0] == 'decimal':
