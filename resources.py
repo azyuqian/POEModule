@@ -8,8 +8,8 @@ import aiocoap.resource as resource
 import aiocoap
 
 from resources_def import PayloadTable
-from resources_def import CoapContentFormats as ContentFormat
 from resources_def import UTF8 as UTF8
+import resources_def as DEF
 
 from sensors.mcp3008 import MCP3008
 from sensors.temp_sensor import WaitingSht15
@@ -17,7 +17,7 @@ from sensors.temp_sensor import WaitingSht15
 FLOAT_FORMAT = '.2f'
 
 
-def wrap_data(self, data, wrapper):
+def wrap_data(data, wrapper):
     wrapper.set_time(str(datetime.datetime.now()))
     wrapper.set_data(data)
 
@@ -44,7 +44,7 @@ class CoreResource(resource.Resource):
         payload = ",".join(data).encode(UTF8)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = ContentFormat.LINK_FORMAT
+        response.opt.content_format = DEF.LINK_FORMAT_CODE
 
         return response
 
@@ -75,7 +75,7 @@ class Acceleration(resource.ObservableResource):
         payload = wrap_data(json_acc, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = ContentFormat.JSON
+        response.opt.content_format = DEF.JSON_FORMAT_CODE
 
         return response
 
@@ -92,7 +92,7 @@ class HelloWorld(resource.Resource):
         payload = wrap_data(self.content, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = ContentFormat.JSON
+        response.opt.content_format = DEF.JSON_FORMAT_CODE
 
         return response
 
@@ -103,7 +103,7 @@ class HelloWorld(resource.Resource):
         payload = ("PUT %s to resource" % self.content).encode(UTF8)
 
         response = aiocoap.Message(code=aiocoap.CHANGED, payload=payload)
-        response.opt.content_format = ContentFormat.TEXT_PLAIN
+        response.opt.content_format = DEF.TEXT_PLAIN_CODE
 
         return response
 
@@ -129,7 +129,7 @@ class LocalTime(resource.ObservableResource):
         payload = wrap_data(json_time, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = ContentFormat.JSON
+        response.opt.content_format = DEF.JSON_FORMAT_CODE
 
         return response
 
@@ -139,7 +139,7 @@ class LocalTime(resource.ObservableResource):
         err_msg = ("argument is not correctly formatted. Follow 'period [sec]' t " \
                    "update period to observe 'time' resource\n\n").encode(UTF8)
         err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
-        err_response.opt.content_format = ContentFormat.TEXT_PLAIN
+        err_response.opt.content_format = DEF.TEXT_PLAIN_CODE
 
         args = request.payload.decode(UTF8).split()
         if len(args) != 2:
@@ -153,7 +153,7 @@ class LocalTime(resource.ObservableResource):
 
         payload = ("PUT %s=%s to resource" % (args[0], self.observe_period)).encode(UTF8)
         response = aiocoap.Message(code=aiocoap.CHANGED, payload=payload)
-        response.opt.content_format = ContentFormat.TEXT_PLAIN
+        response.opt.content_format = DEF.TEXT_PLAIN_CODE
 
         return response
 
@@ -181,7 +181,7 @@ class Temperature(resource.ObservableResource):
         payload = wrap_data(json_temp, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = ContentFormat.JSON
+        response.opt.content_format = DEF.JSON_FORMAT_CODE
 
         return response
 
@@ -205,7 +205,7 @@ class Humidity(resource.ObservableResource):
         payload = json.dumps({'humidity': format(humidity, FLOAT_FORMAT)}).encode(UTF8)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = ContentFormat.JSON
+        response.opt.content_format = DEF.JSON_FORMAT_CODE
 
         return response
 
@@ -230,6 +230,6 @@ class Temp_Humidity(resource.ObservableResource):
                              sort_keys=True).encode(UTF8)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = ContentFormat.JSON
+        response.opt.content_format = DEF.JSON_FORMAT_CODE
 
         return response
