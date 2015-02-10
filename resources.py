@@ -14,8 +14,6 @@ import resources_def as r_defs
 from sensors.mcp3008 import MCP3008
 from sensors.temp_sensor import WaitingSht15
 
-FLOAT_FORMAT = '.2f'
-
 
 # FIXME: This resource is broken
 class CoreResource(resource.Resource):
@@ -99,7 +97,8 @@ class LocalTime(resource.ObservableResource):
     @asyncio.coroutine
     def render_PUT(self, request):
         #print("PUT %s to resource" % request.payload)
-        err_msg = ("argument is not correctly formatted. Follow 'period [sec]' t " \
+        # FIXME: This should probably be formatted with corresponding error code
+        err_msg = ("argument is not correctly formatted. Follow 'period [sec]' to " \
                    "update period to observe 'time' resource\n\n").encode(UTF8)
         err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
         err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
@@ -132,6 +131,8 @@ class Acceleration(resource.ObservableResource):
         self.sensor = MCP3008()
 
         self.observe_period = 1
+        self.fp_format = r_defs.DEFAULT_FP_FORMAT
+
         self.payload = PayloadTable('acceleration', True, self.observe_period)
 
         # start observing resource
@@ -145,13 +146,43 @@ class Acceleration(resource.ObservableResource):
     def render_GET(self, request):
         x, y, z = self.sensor.acceleration()
         # Wrap data with sensor related information and timestamps
-        json_acc = json.dumps([{'x': format(x, FLOAT_FORMAT)},      \
-                                {'y': format(y, FLOAT_FORMAT)},     \
-                                {'z': format(z, FLOAT_FORMAT)}], sort_keys=True)
+        json_acc = json.dumps([{'x': format(x, self.fp_format)},    \
+                               {'y': format(y, self.fp_format)},    \
+                               {'z': format(z, self.fp_format)}], sort_keys=True)
         payload = PayloadWrapper.wrap(json_acc, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
         response.opt.content_format = r_defs.JSON_FORMAT_CODE
+
+        return response
+
+    @asyncio.coroutine
+    def render_PUT(self, request):
+        #print("PUT %s to resource" % request.payload)
+        # FIXME: This should probably be formatted with corresponding error code
+        # FIXME: Various error messages for different PUT methods
+        err_msg = ("argument is not correctly formatted. Follow 'period [sec]' to " \
+                   "update period to observe 'acceleration' resource\n\n").encode(UTF8)
+        err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
+        err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+
+        args = request.payload.decode(UTF8).split()
+        if len(args) != 2:
+            return err_response
+
+        if (args[0] == 'period') and (args[1].isdigit() and args[1] != '0'):
+            # FIXME: if period = 0, observation should be disabled
+            self.observe_period = int(args[1])
+            # PUT new value to non-data field requires updating payload wrapper content
+            self.payload.set_sample_rate(self.observe_period)
+        elif args[0] == 'decimal':
+            self.fp_format = '.{}f'.format(int(args[1]))
+        else:
+            return err_response
+
+        payload = ("PUT %s=%s to resource" % (args[0], args[1])).encode(UTF8)
+        response = aiocoap.Message(code=aiocoap.CHANGED, payload=payload)
+        response.opt.content_format = r_defs.TEXT_PLAIN_CODE
 
         return response
 
@@ -163,6 +194,7 @@ class HygroThermo(resource.ObservableResource):
     def __init__(self):
         super(HygroThermo, self).__init__()
         self.observe_period = 3
+        self.fp_format = r_defs.DEFAULT_FP_FORMAT
         self.notify()
 
     def notify(self):
@@ -171,8 +203,8 @@ class HygroThermo(resource.ObservableResource):
 
     def render_GET(self, request):
         temp, humidity = self.temp_hum.read_temperature_and_Humidity()
-        payload = json.dumps([{'temperature': format(temp, FLOAT_FORMAT)},      \
-                              {'humidity': format(humidity, FLOAT_FORMAT)}],    \
+        payload = json.dumps([{'temperature': format(temp, self.fp_format)},    \
+                              {'humidity': format(humidity, self.fp_format)}],  \
                              sort_keys=True).encode(UTF8)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
@@ -189,6 +221,7 @@ class Temperature(resource.ObservableResource):
         super(Temperature, self).__init__()
 
         self.observe_period = 3
+        self.fp_format = r_defs.DEFAULT_FP_FORMAT
         self.payload = PayloadTable('temperature', True, self.observe_period)
 
         self.notify()
@@ -200,11 +233,41 @@ class Temperature(resource.ObservableResource):
     @asyncio.coroutine
     def render_GET(self, request, query=None):
         temp = self.temperature.read_temperature_C()
-        json_temp = json.dumps({'temperature': format(temp, FLOAT_FORMAT)})
+        json_temp = json.dumps({'temperature': format(temp, self.fp_format)})
         payload = PayloadWrapper.wrap(json_temp, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
         response.opt.content_format = r_defs.JSON_FORMAT_CODE
+
+        return response
+
+    @asyncio.coroutine
+    def render_PUT(self, request):
+        #print("PUT %s to resource" % request.payload)
+        # FIXME: This should probably be formatted with corresponding error code
+        # FIXME: Various error messages for different PUT methods
+        err_msg = ("argument is not correctly formatted. Follow 'period [sec]' to " \
+                   "update period to observe 'temperature' resource\n\n").encode(UTF8)
+        err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
+        err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+
+        args = request.payload.decode(UTF8).split()
+        if len(args) != 2:
+            return err_response
+
+        if (args[0] == 'period') and (args[1].isdigit() and args[1] != '0'):
+            # FIXME: if period = 0, observation should be disabled
+            self.observe_period = int(args[1])
+            # PUT new value to non-data field requires updating payload wrapper content
+            self.payload.set_sample_rate(self.observe_period)
+        elif args[0] == 'decimal':
+            self.fp_format = '.{}f'.format(int(args[1]))
+        else:
+            return err_response
+
+        payload = ("PUT %s=%s to resource" % (args[0], args[1])).encode(UTF8)
+        response = aiocoap.Message(code=aiocoap.CHANGED, payload=payload)
+        response.opt.content_format = r_defs.TEXT_PLAIN_CODE
 
         return response
 
@@ -216,6 +279,7 @@ class Humidity(resource.ObservableResource):
     def __init__(self):
         super(Humidity, self).__init__()
         self.observe_period = 3
+        self.fp_format = r_defs.DEFAULT_FP_FORMAT
         self.notify()
     
     def notify(self):
@@ -225,7 +289,7 @@ class Humidity(resource.ObservableResource):
     @asyncio.coroutine
     def render_GET(self, request):
         humidity = self.humidity.read_humidity()
-        payload = json.dumps({'humidity': format(humidity, FLOAT_FORMAT)}).encode(UTF8)
+        payload = json.dumps({'humidity': format(humidity, self.fp_format)}).encode(UTF8)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
         response.opt.content_format = r_defs.JSON_FORMAT_CODE
