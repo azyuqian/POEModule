@@ -1,4 +1,5 @@
-#import json
+import json
+import datetime
 
 """ CoAP content format codes by media types
     Reference [RFC7252, Section 12.3]: http://tools.ietf.org/html/rfc7252 """
@@ -12,11 +13,20 @@ JSON_FORMAT_CODE = 50
 # Constant definitions
 UTF8 = 'utf-8'
 
-NAME_FIELD = "name"
-ACTIVE_FIELD = "active"
-SAMPLE_R_FIELD = "rate"
-DATA_FIELD = "data"
-TIME_FIELD = "time"
+NAME_FIELD = 'name'
+ACTIVE_FIELD = 'active'
+SAMPLE_R_FIELD = 'rate'
+DATA_FIELD = 'data'
+TIME_FIELD = 'time'
+
+
+class PayloadWrapper:
+    @staticmethod
+    def wrap(data, wrapper):
+        wrapper.set_time(str(datetime.datetime.now()))
+        wrapper.set_data(data)
+
+        return json.dumps(wrapper).encode(UTF8)
 
 
 class PayloadTable(dict):
@@ -26,11 +36,11 @@ class PayloadTable(dict):
         dict.__setitem__(self, NAME_FIELD, name)
         dict.__setitem__(self, ACTIVE_FIELD, is_active)
         dict.__setitem__(self, SAMPLE_R_FIELD, rate)
-        dict.__setitem__(self, DATA_FIELD, "")  # json.dumps('')
-        dict.__setitem__(self, TIME_FIELD, "")
+        dict.__setitem__(self, DATA_FIELD, '')
+        dict.__setitem__(self, TIME_FIELD, '')
 
     def __missing__(self, key):
-        raise KeyError('The key {} not defined'.format(key))
+        raise KeyError("The key {} not defined".format(key))
 
     def set_name(self, name):
         dict.__setitem__(self, NAME_FIELD, name)

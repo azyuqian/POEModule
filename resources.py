@@ -1,5 +1,4 @@
 import time
-import datetime
 import json
 
 import asyncio
@@ -9,7 +8,8 @@ import aiocoap
 
 from resources_def import PayloadTable
 from resources_def import UTF8 as UTF8
-import resources_def as DEF
+from resources_def import PayloadWrapper
+import resources_def
 
 from sensors.mcp3008 import MCP3008
 from sensors.temp_sensor import WaitingSht15
@@ -17,13 +17,7 @@ from sensors.temp_sensor import WaitingSht15
 FLOAT_FORMAT = '.2f'
 
 
-def wrap_data(data, wrapper):
-    wrapper.set_time(str(datetime.datetime.now()))
-    wrapper.set_data(data)
-
-    return json.dumps(wrapper).encode(UTF8)
-
-
+# FIXME: This resource is broken
 class CoreResource(resource.Resource):
     """
     Example Resource that provides list of links hosted by a server.
@@ -44,16 +38,18 @@ class CoreResource(resource.Resource):
         payload = ",".join(data).encode(UTF8)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = DEF.LINK_FORMAT_CODE
+        response.opt.content_format = resources_def.LINK_FORMAT_CODE
 
         return response
 
 
 class Acceleration(resource.ObservableResource):
-    sensor = MCP3008()
-
     def __init__(self):
         super(Acceleration, self).__init__()
+
+        # It is safe to construct sensor driver as instance variable (i.e. faster
+        #   access), since as a resource Acceleration will only have one instance
+        self.sensor = MCP3008()
 
         self.observe_period = 1
         self.payload = PayloadTable('acceleration', True, self.observe_period)
@@ -72,10 +68,10 @@ class Acceleration(resource.ObservableResource):
         json_acc = json.dumps([{'x': format(x, FLOAT_FORMAT)},      \
                                 {'y': format(y, FLOAT_FORMAT)},     \
                                 {'z': format(z, FLOAT_FORMAT)}], sort_keys=True)
-        payload = wrap_data(json_acc, self.payload)
+        payload = PayloadWrapper.wrap(json_acc, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = DEF.JSON_FORMAT_CODE
+        response.opt.content_format = resources_def.JSON_FORMAT_CODE
 
         return response
 
@@ -89,10 +85,10 @@ class HelloWorld(resource.Resource):
 
     @asyncio.coroutine
     def render_GET(self, request):
-        payload = wrap_data(self.content, self.payload)
+        payload = PayloadWrapper.wrap(self.content, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = DEF.JSON_FORMAT_CODE
+        response.opt.content_format = resources_def.JSON_FORMAT_CODE
 
         return response
 
@@ -103,7 +99,7 @@ class HelloWorld(resource.Resource):
         payload = ("PUT %s to resource" % self.content).encode(UTF8)
 
         response = aiocoap.Message(code=aiocoap.CHANGED, payload=payload)
-        response.opt.content_format = DEF.TEXT_PLAIN_CODE
+        response.opt.content_format = resources_def.TEXT_PLAIN_CODE
 
         return response
 
@@ -126,10 +122,10 @@ class LocalTime(resource.ObservableResource):
         # FIXME: local time should be differentiated from timestamp (datetime.now())
         #        e.g. local time = time since last boot
         json_time = json.dumps({'time': time.time()})
-        payload = wrap_data(json_time, self.payload)
+        payload = PayloadWrapper.wrap(json_time, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = DEF.JSON_FORMAT_CODE
+        response.opt.content_format = resources_def.JSON_FORMAT_CODE
 
         return response
 
@@ -139,7 +135,7 @@ class LocalTime(resource.ObservableResource):
         err_msg = ("argument is not correctly formatted. Follow 'period [sec]' t " \
                    "update period to observe 'time' resource\n\n").encode(UTF8)
         err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
-        err_response.opt.content_format = DEF.TEXT_PLAIN_CODE
+        err_response.opt.content_format = resources_def.TEXT_PLAIN_CODE
 
         args = request.payload.decode(UTF8).split()
         if len(args) != 2:
@@ -153,7 +149,7 @@ class LocalTime(resource.ObservableResource):
 
         payload = ("PUT %s=%s to resource" % (args[0], self.observe_period)).encode(UTF8)
         response = aiocoap.Message(code=aiocoap.CHANGED, payload=payload)
-        response.opt.content_format = DEF.TEXT_PLAIN_CODE
+        response.opt.content_format = resources_def.TEXT_PLAIN_CODE
 
         return response
 
@@ -178,10 +174,10 @@ class Temperature(resource.ObservableResource):
     def render_GET(self, request, query=None):
         temp = self.temperature.read_temperature_C()
         json_temp = json.dumps({'temperature': format(temp, FLOAT_FORMAT)})
-        payload = wrap_data(json_temp, self.payload)
+        payload = PayloadWrapper.wrap(json_temp, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = DEF.JSON_FORMAT_CODE
+        response.opt.content_format = resources_def.JSON_FORMAT_CODE
 
         return response
 
@@ -205,7 +201,7 @@ class Humidity(resource.ObservableResource):
         payload = json.dumps({'humidity': format(humidity, FLOAT_FORMAT)}).encode(UTF8)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = DEF.JSON_FORMAT_CODE
+        response.opt.content_format = resources_def.JSON_FORMAT_CODE
 
         return response
 
@@ -230,6 +226,6 @@ class Temp_Humidity(resource.ObservableResource):
                              sort_keys=True).encode(UTF8)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = DEF.JSON_FORMAT_CODE
+        response.opt.content_format = resources_def.JSON_FORMAT_CODE
 
         return response

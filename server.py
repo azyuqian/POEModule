@@ -27,7 +27,7 @@ logging.getLogger("coap-server").setLevel(logging.DEBUG)
 
 
 def main():
-    # Resource tree creation
+    """ Create resource tree """
     root = Site()
 
     root.add_resource(('.well-known', 'core'), r.CoreResource(root))
