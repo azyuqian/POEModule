@@ -9,7 +9,7 @@ import aiocoap
 from resources_def import PayloadTable
 from resources_def import UTF8 as UTF8
 from resources_def import PayloadWrapper
-import resources_def
+import resources_def as r_defs
 
 from sensors.mcp3008 import MCP3008
 from sensors.temp_sensor import WaitingSht15
@@ -38,40 +38,7 @@ class CoreResource(resource.Resource):
         payload = ",".join(data).encode(UTF8)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = resources_def.LINK_FORMAT_CODE
-
-        return response
-
-
-class Acceleration(resource.ObservableResource):
-    def __init__(self):
-        super(Acceleration, self).__init__()
-
-        # It is safe to construct sensor driver as instance variable (i.e. faster
-        #   access), since as a resource Acceleration will only have one instance
-        self.sensor = MCP3008()
-
-        self.observe_period = 1
-        self.payload = PayloadTable('acceleration', True, self.observe_period)
-
-        # start observing resource
-        self.notify()
-    
-    def notify(self):
-        self.updated_state()
-        asyncio.get_event_loop().call_later(self.observe_period, self.notify)
-
-    @asyncio.coroutine
-    def render_GET(self, request):
-        x, y, z = self.sensor.acceleration()
-        # Wrap data with sensor related information and timestamps
-        json_acc = json.dumps([{'x': format(x, FLOAT_FORMAT)},      \
-                                {'y': format(y, FLOAT_FORMAT)},     \
-                                {'z': format(z, FLOAT_FORMAT)}], sort_keys=True)
-        payload = PayloadWrapper.wrap(json_acc, self.payload)
-
-        response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = resources_def.JSON_FORMAT_CODE
+        response.opt.content_format = r_defs.LINK_FORMAT_CODE
 
         return response
 
@@ -88,7 +55,7 @@ class HelloWorld(resource.Resource):
         payload = PayloadWrapper.wrap(self.content, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = resources_def.JSON_FORMAT_CODE
+        response.opt.content_format = r_defs.JSON_FORMAT_CODE
 
         return response
 
@@ -99,7 +66,7 @@ class HelloWorld(resource.Resource):
         payload = ("PUT %s to resource" % self.content).encode(UTF8)
 
         response = aiocoap.Message(code=aiocoap.CHANGED, payload=payload)
-        response.opt.content_format = resources_def.TEXT_PLAIN_CODE
+        response.opt.content_format = r_defs.TEXT_PLAIN_CODE
 
         return response
 
@@ -125,7 +92,7 @@ class LocalTime(resource.ObservableResource):
         payload = PayloadWrapper.wrap(json_time, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = resources_def.JSON_FORMAT_CODE
+        response.opt.content_format = r_defs.JSON_FORMAT_CODE
 
         return response
 
@@ -135,7 +102,7 @@ class LocalTime(resource.ObservableResource):
         err_msg = ("argument is not correctly formatted. Follow 'period [sec]' t " \
                    "update period to observe 'time' resource\n\n").encode(UTF8)
         err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
-        err_response.opt.content_format = resources_def.TEXT_PLAIN_CODE
+        err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
 
         args = request.payload.decode(UTF8).split()
         if len(args) != 2:
@@ -151,7 +118,65 @@ class LocalTime(resource.ObservableResource):
 
         payload = ("PUT %s=%s to resource" % (args[0], self.observe_period)).encode(UTF8)
         response = aiocoap.Message(code=aiocoap.CHANGED, payload=payload)
-        response.opt.content_format = resources_def.TEXT_PLAIN_CODE
+        response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+
+        return response
+
+
+class Acceleration(resource.ObservableResource):
+    def __init__(self):
+        super(Acceleration, self).__init__()
+
+        # It is safe to construct sensor driver as instance variable (i.e. faster
+        #   access), since as a resource Acceleration will only have one instance
+        self.sensor = MCP3008()
+
+        self.observe_period = 1
+        self.payload = PayloadTable('acceleration', True, self.observe_period)
+
+        # start observing resource
+        self.notify()
+
+    def notify(self):
+        self.updated_state()
+        asyncio.get_event_loop().call_later(self.observe_period, self.notify)
+
+    @asyncio.coroutine
+    def render_GET(self, request):
+        x, y, z = self.sensor.acceleration()
+        # Wrap data with sensor related information and timestamps
+        json_acc = json.dumps([{'x': format(x, FLOAT_FORMAT)},      \
+                                {'y': format(y, FLOAT_FORMAT)},     \
+                                {'z': format(z, FLOAT_FORMAT)}], sort_keys=True)
+        payload = PayloadWrapper.wrap(json_acc, self.payload)
+
+        response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
+        response.opt.content_format = r_defs.JSON_FORMAT_CODE
+
+        return response
+
+
+# FIXME: add data wrapper or fix SHT15 class hierarchy
+class HygroThermo(resource.ObservableResource):
+    temp_hum = WaitingSht15()
+
+    def __init__(self):
+        super(HygroThermo, self).__init__()
+        self.observe_period = 3
+        self.notify()
+
+    def notify(self):
+        self.updated_state()
+        asyncio.get_event_loop().call_later(self.observe_period, self.notify)
+
+    def render_GET(self, request):
+        temp, humidity = self.temp_hum.read_temperature_and_Humidity()
+        payload = json.dumps([{'temperature': format(temp, FLOAT_FORMAT)},      \
+                              {'humidity': format(humidity, FLOAT_FORMAT)}],    \
+                             sort_keys=True).encode(UTF8)
+
+        response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
+        response.opt.content_format = r_defs.JSON_FORMAT_CODE
 
         return response
 
@@ -179,7 +204,7 @@ class Temperature(resource.ObservableResource):
         payload = PayloadWrapper.wrap(json_temp, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = resources_def.JSON_FORMAT_CODE
+        response.opt.content_format = r_defs.JSON_FORMAT_CODE
 
         return response
 
@@ -203,31 +228,6 @@ class Humidity(resource.ObservableResource):
         payload = json.dumps({'humidity': format(humidity, FLOAT_FORMAT)}).encode(UTF8)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = resources_def.JSON_FORMAT_CODE
-
-        return response
-
-
-# FIXME: add data wrapper or fix SHT15 class hierarchy
-class Temp_Humidity(resource.ObservableResource):
-    temp_hum = WaitingSht15()
-    
-    def __init__(self):
-        super(Temp_Humidity, self).__init__()
-        self.observe_period = 3
-        self.notify()
-    
-    def notify(self):
-        self.updated_state()
-        asyncio.get_event_loop().call_later(self.observe_period, self.notify)
-    
-    def render_GET(self, request):
-        temp, humidity = self.temp_hum.read_temperature_and_Humidity()
-        payload = json.dumps([{'temperature': format(temp, FLOAT_FORMAT)},      \
-                              {'humidity': format(humidity, FLOAT_FORMAT)}],    \
-                             sort_keys=True).encode(UTF8)
-
-        response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
-        response.opt.content_format = resources_def.JSON_FORMAT_CODE
+        response.opt.content_format = r_defs.JSON_FORMAT_CODE
 
         return response
