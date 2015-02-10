@@ -123,6 +123,70 @@ class LocalTime(resource.ObservableResource):
         return response
 
 
+class Alert(resource.ObservableResource):
+    def __init__(self):
+        self.count = 0
+
+        super(Alert, self).__init__()
+
+        self.observe_period = 1
+        self.payload = PayloadTable('alert', True, self.observe_period)
+
+        self.notify()
+        self.alert_status = False
+
+        # TODO: Should be an earthquake detection algorithm
+        ## Not tested
+        # self.sensor = MCP3008()
+
+    def notify(self):
+        # Only update resource if an alert is raised
+        if self.detect_alert():
+          self.alert_status = True
+          self.updated_state()
+        else:
+          asyncio.get_event_loop().call_later(self.observe_period, self.notify)
+
+
+    def detect_alert(self):
+        # TODO: Should be an earthquake detection algorithm
+        ## Not tested
+        #THRESHOLD = 1.5
+        #total_acceleration = sum(self.sensor.acceleration)
+        #if total_acceleration > THRESHOLD:
+          #return True
+
+        print(self.count)
+        if self.count > 10:
+          return True
+        else:
+          self.count = self.count + 1
+          return False
+
+    @asyncio.coroutine
+    def render_GET(self, request):
+        json_status = json.dumps({"alert": self.alert_status})
+        payload = PayloadWrapper.wrap(json_status, self.payload)
+
+        response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
+        response.opt.content_format = r_defs.JSON_FORMAT_CODE
+
+        return response
+
+    @asyncio.coroutine
+    def render_PUT(self, request):
+        self.alert_status = False
+        self.count = 0
+
+        json_status = json.dumps({"alert": self.alert_status})
+        payload = PayloadWrapper.wrap(json_status, self.payload)
+
+        response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
+        response.opt.content_format = r_defs.JSON_FORMAT_CODE
+
+        return response
+
+
 class Acceleration(resource.ObservableResource):
     def __init__(self):
         super(Acceleration, self).__init__()
@@ -226,11 +290,11 @@ class Temperature(resource.ObservableResource):
         self.payload = PayloadTable('temperature', True, self.observe_period)
 
         self.notify()
-    
+
     def notify(self):
         self.updated_state()
         asyncio.get_event_loop().call_later(self.observe_period, self.notify)
-    
+
     @asyncio.coroutine
     def render_GET(self, request, query=None):
         temp = self.temperature.read_temperature_C()
@@ -288,11 +352,11 @@ class Humidity(resource.ObservableResource):
         self.observe_period = 3
         self.fp_format = r_defs.DEFAULT_FP_FORMAT
         self.notify()
-    
+
     def notify(self):
         self.updated_state()
         asyncio.get_event_loop().call_later(self.observe_period, self.notify)
-    
+
     @asyncio.coroutine
     def render_GET(self, request):
         humidity = self.humidity.read_humidity()

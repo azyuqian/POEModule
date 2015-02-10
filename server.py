@@ -33,6 +33,7 @@ def main():
     root.add_resource(('.well-known', 'core'), r.CoreResource(root))
     root.add_resource(('hello',), r.HelloWorld())
     root.add_resource(('time',), r.LocalTime())
+    root.add_resource(('alert',), r.Alert())
     root.add_resource(('acceleration',), r.Acceleration())
     root.add_resource(('hygrothermo',), r.HygroThermo())
     root.add_resource(('temperature',), r.Temperature())
