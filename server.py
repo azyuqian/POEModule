@@ -23,7 +23,7 @@ import resources as r
 
 # logging setup
 logging.basicConfig(level=logging.INFO)
-logging.getLogger("coap-server").setLevel(logging.DEBUG)
+logging.getLogger('coap-server').setLevel(logging.DEBUG)
 
 
 def main():
@@ -35,9 +35,8 @@ def main():
     root.add_resource(('time',), r.LocalTime())
     root.add_resource(('alert',), r.Alert())
     root.add_resource(('acceleration',), r.Acceleration())
-    root.add_resource(('hygrothermo',), r.HygroThermo())
-    root.add_resource(('temperature',), r.Temperature())
-    root.add_resource(('humidity',), r.Humidity())
+    root.add_resource(('hygrothermo', 'temperature'), r.Temperature())
+    root.add_resource(('hygrothermo', 'humidity'), r.Humidity())
 
     #root.add_resource(('other', 'block'), BlockResource())
     #root.add_resource(('other', 'separate'), SeparateLargeResource())
@@ -47,5 +46,5 @@ def main():
     asyncio.get_event_loop().run_forever()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
