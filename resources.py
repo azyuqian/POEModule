@@ -440,11 +440,7 @@ class Humidity(HygroThermo):
 
         return response
 
-<<<<<<< Updated upstream
 
-# Define the resources can be added dynamically
-IMPLEMENTED_REOURCES = {'HelloWorld': HelloWorld}
-=======
 class Resource_Template(resource.ObservableResource):
     def __init__(self, name=None, period=3, min=0, max=1023, channel=0):
         super(Resource_Template, self).__init__()
@@ -515,6 +511,5 @@ class Resource_Template(resource.ObservableResource):
         
         return response
 
-
-
->>>>>>> Stashed changes
+# Define the resources can be added dynamically
+IMPLEMENTED_REOURCES = {'HelloWorld': HelloWorld}

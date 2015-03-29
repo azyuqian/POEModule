@@ -28,13 +28,9 @@ logging.getLogger('coap-server').setLevel(logging.DEBUG)
 def main():
     """ Create resource tree """
     root = Site()
-<<<<<<< Updated upstream
 
-    root.add_resource((''), r.RootResource(root))
-=======
-    
     # default resources to add
->>>>>>> Stashed changes
+    root.add_resource((''), r.RootResource(root))
     root.add_resource(('.well-known', 'core'), r.CoreResource(root))
     root.add_resource(('hello',), r.HelloWorld())
     root.add_resource(('time',), r.LocalTime())
