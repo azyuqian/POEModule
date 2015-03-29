@@ -11,8 +11,13 @@ from resources_def import UTF8 as UTF8
 from resources_def import PayloadWrapper
 import resources_def as r_defs
 
-from sensors.mcp3008 import MCP3008
-from sensors.temp_sensor import WaitingSht15
+import platform
+if platform.machine() == 'x86_64':
+  from sensors.mcp3008 import MCP3008Mock as MCP3008
+  from sensors.temp_sensor import WaitingSht15Mock as WaitingSht15
+else:
+  from sensors.mcp3008 import MCP3008
+  from sensors.temp_sensor import WaitingSht15
 
 
 # FIXME: This resource is broken
