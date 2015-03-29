@@ -1,0 +1,7 @@
+{
+  "sensors": {
+    "temperature",
+    "humidity",
+    "AccX" : {"period":"3", "channel": "0","min":"-3", "max":"3" }
+  }
+}
