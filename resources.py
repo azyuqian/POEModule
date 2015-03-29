@@ -20,6 +20,58 @@ else:
   from sensors.temp_sensor import WaitingSht15
 
 
+class RootResource(resource.Resource):
+    """
+    Example Resource that provides list of links hosted by a server.
+    Normally it should be hosted at /
+    """
+
+    def __init__(self, root):
+        resource.Resource.__init__(self)
+        self.root = root
+
+    @asyncio.coroutine
+    def render_POST(self, request):
+        payload = request.payload.decode(UTF8)
+
+        import json
+        try:
+          jpayload = json.loads(payload)
+        except Exception as e:
+          # JSON parsing error
+          err_msg = ("Invalid JSON format: " + str(e)).encode(UTF8)
+          err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
+          err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+          return err_response
+
+        try:
+          path = jpayload['path']
+          resource_name = jpayload['resource']
+        except Exception as e:
+          # Invalid JSON contents
+          err_msg = ("Invalid JSON contents: " + str(e)).encode(UTF8)
+          err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
+          err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+          return err_response
+
+        # Try to locate the resource class using its name(resource_name)
+        if resource_name not in IMPLEMENTED_REOURCES:
+            err_msg = ("Resource not implemented").encode(UTF8)
+            err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
+            err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+            return err_response
+
+        from aiocoap.resource import Site
+        root = Site()
+        root.add_resource((path), IMPLEMENTED_REOURCES[resource_name]())
+        asyncio.async(aiocoap.Context.create_server_context(root))
+
+        payload = 'Success'.encode(UTF8)
+        response = aiocoap.Message(code=aiocoap.CHANGED, payload=payload)
+        response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+        return response
+
+
 # FIXME: This resource is broken
 class CoreResource(resource.Resource):
     """
@@ -161,7 +213,6 @@ class Alert(resource.ObservableResource):
         #if total_acceleration > THRESHOLD:
           #return True
 
-        print(self.count)
         if self.count > 10:
           return True
         else:
@@ -388,3 +439,7 @@ class Humidity(HygroThermo):
         response.opt.content_format = r_defs.TEXT_PLAIN_CODE
 
         return response
+
+
+# Define the resources can be added dynamically
+IMPLEMENTED_REOURCES = {'HelloWorld': HelloWorld}
