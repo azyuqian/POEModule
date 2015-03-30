@@ -68,15 +68,15 @@ if platform.machine() != 'x86_64':
             z = self._convert_raw_to_g(self._read_channel_raw(self.ACC_Z_CH), self.AXIS_Z)
             return x, y, z
 
-else:
-    class MCP3008Mock():
-        adc = [0xff, 0xff, 0xff]
-        x = 1
-        y = 1
-        z = 1
 
-        def read_channel_raw(self, channel):
-            return ((self.adc[1] & 0x03) << 8) + self.adc[2]
+class MCP3008Mock():
+    adc = [0xff, 0xff, 0xff]
+    x = 1
+    y = 1
+    z = 1
 
-        def acceleration(self):
-            return self.x, self.y, self.z
+    def read_channel_raw(self, channel):
+        return ((self.adc[1] & 0x03) << 8) + self.adc[2]
+
+    def acceleration(self):
+        return self.x, self.y, self.z
