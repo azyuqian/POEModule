@@ -34,7 +34,6 @@ class RootResource(resource.Resource):
     def render_POST(self, request):
         payload = request.payload.decode(UTF8)
 
-        import json
         try:
             jpayload = json.loads(payload)
         except Exception as e:
@@ -55,7 +54,7 @@ class RootResource(resource.Resource):
             return err_response
 
         # Try to locate the resource class using its name(resource_name)
-        if resource_name not in IMPLEMENTED_REOURCES:
+        if resource_name not in IMPLEMENTED_RESOURCES:
             err_msg = "Resource not implemented".encode(UTF8)
             err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
             err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
@@ -63,7 +62,7 @@ class RootResource(resource.Resource):
 
         from aiocoap.resource import Site
         root = Site()
-        root.add_resource(path, IMPLEMENTED_REOURCES[resource_name]())
+        root.add_resource(path, IMPLEMENTED_RESOURCES[resource_name]())
         asyncio.async(aiocoap.Context.create_server_context(root))
 
         payload = "Success".encode(UTF8)
@@ -514,4 +513,10 @@ class ResourceTemplate(resource.ObservableResource):
         return response
 
 # Define the resources can be added dynamically
-IMPLEMENTED_REOURCES = {'HelloWorld': HelloWorld}
+IMPLEMENTED_RESOURCES = {'HelloWorld': HelloWorld,
+                         'LocalTime': LocalTime,
+                         'Alert': Alert,
+                         'Acceleration': Acceleration,
+                         'Temperature': Temperature,
+                         'Humidity': Humidity,
+                         'ResourceTemplate': ResourceTemplate}
