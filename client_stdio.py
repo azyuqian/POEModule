@@ -119,9 +119,11 @@ class Commands():
         if command:
             print(getattr(Commands, 'do_'+command).__doc__)
         else:
-            commands = [cmd[3:] for cmd in dir(Commands)
-                        if cmd.startswith('do_')]
+            commands = [cmd[3:] for cmd in dir(Commands) if cmd.startswith('do_')]
             print("Valid commands: " + ", ".join(commands))
+
+        # Empty yield to avoid NoneType error
+        yield
 
     @staticmethod
     def do_hello(code='GET', *args):
@@ -147,7 +149,8 @@ class Commands():
                 yield from get_impl('hello')
         elif code == 'PUT':
             yield from put_impl('hello', payload)
-
+        else:
+            raise AttributeError("Invalid command")
 
     @staticmethod
     def do_time(code='GET', *args):
@@ -173,6 +176,8 @@ class Commands():
                 yield from get_impl('time')
         elif code == 'PUT':
             yield from put_impl('time', payload)
+        else:
+            raise AttributeError("Invalid command")
 
 
 def main():
