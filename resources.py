@@ -13,11 +13,11 @@ import resources_def as r_defs
 
 import platform
 if platform.machine() == 'x86_64':
-  from sensors.mcp3008 import MCP3008Mock as MCP3008
-  from sensors.temp_sensor import WaitingSht15Mock as WaitingSht15
+    from sensors.mcp3008 import MCP3008Mock as MCP3008
+    from sensors.temp_sensor import WaitingSht15Mock as WaitingSht15
 else:
-  from sensors.mcp3008 import MCP3008
-  from sensors.temp_sensor import WaitingSht15
+    from sensors.mcp3008 import MCP3008
+    from sensors.temp_sensor import WaitingSht15
 
 
 class RootResource(resource.Resource):
@@ -36,37 +36,37 @@ class RootResource(resource.Resource):
 
         import json
         try:
-          jpayload = json.loads(payload)
+            jpayload = json.loads(payload)
         except Exception as e:
-          # JSON parsing error
-          err_msg = ("Invalid JSON format: " + str(e)).encode(UTF8)
-          err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
-          err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
-          return err_response
+            # JSON parsing error
+            err_msg = ("Invalid JSON format: " + str(e)).encode(UTF8)
+            err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
+            err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+            return err_response
 
         try:
-          path = jpayload['path']
-          resource_name = jpayload['resource']
+            path = jpayload['path']
+            resource_name = jpayload['resource']
         except Exception as e:
-          # Invalid JSON contents
-          err_msg = ("Invalid JSON contents: " + str(e)).encode(UTF8)
-          err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
-          err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
-          return err_response
+            # Invalid JSON contents
+            err_msg = ("Invalid JSON contents: " + str(e)).encode(UTF8)
+            err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
+            err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+            return err_response
 
         # Try to locate the resource class using its name(resource_name)
         if resource_name not in IMPLEMENTED_REOURCES:
-            err_msg = ("Resource not implemented").encode(UTF8)
+            err_msg = "Resource not implemented".encode(UTF8)
             err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
             err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
             return err_response
 
         from aiocoap.resource import Site
         root = Site()
-        root.add_resource((path), IMPLEMENTED_REOURCES[resource_name]())
+        root.add_resource(path, IMPLEMENTED_REOURCES[resource_name]())
         asyncio.async(aiocoap.Context.create_server_context(root))
 
-        payload = 'Success'.encode(UTF8)
+        payload = "Success".encode(UTF8)
         response = aiocoap.Message(code=aiocoap.CHANGED, payload=payload)
         response.opt.content_format = r_defs.TEXT_PLAIN_CODE
         return response
@@ -463,7 +463,7 @@ class Resource_Template(resource.ObservableResource):
     @asyncio.coroutine
     def render_GET(self, request):
         reading = self.sensor._read_channel_raw(self.channel)
-        reading_conv = ((reading/1024) * ( self.max - self.min)) + (self.min)
+        reading_conv = ((reading/1024) * (self.max-self.min)) + self.min
         json_temp_resource = json.dumps({self.name: format(reading_conv, self.fp_format)})
         payload = PayloadWrapper.wrap(json_temp_resource, self.payload)
         

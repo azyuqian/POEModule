@@ -13,12 +13,10 @@ import json
 
 import asyncio
 
-
 import aiocoap
 from aiocoap.resource import Site
 
 import resources as r
-
 
 # logging setup
 logging.basicConfig(level=logging.INFO)
@@ -30,31 +28,31 @@ def main():
     root = Site()
 
     # default resources to add
-    root.add_resource((''), r.RootResource(root))
+    root.add_resource('', r.RootResource(root))
     root.add_resource(('.well-known', 'core'), r.CoreResource(root))
     root.add_resource(('hello',), r.HelloWorld())
     root.add_resource(('time',), r.LocalTime())
     root.add_resource(('alert',), r.Alert())
     
     with open('config.json') as data_file:
-        sensorlist = json.load(data_file)['sensors']
+        sensor_list = json.load(data_file)['sensors']
     
-    for sensor in sensorlist:
-        if sensor['name'] == "accelerometer":
-            print ("acceleration added ")
+    for sensor in sensor_list:
+        if sensor['name'] == 'accelerometer':
+            print("acceleration added ")
             root.add_resource(('acceleration',), r.Acceleration())
-        elif sensor['name'] == "temperature":
-            print ("temperature resource added ")
+        elif sensor['name'] == 'temperature':
+            print("temperature resource added ")
             root.add_resource(('hygrothermo', 'temperature'), r.Temperature())
-        elif sensor['name'] == "humidity":
-            print ("humidity resource added ")
+        elif sensor['name'] == 'humidity':
+            print("humidity resource added ")
             root.add_resource(('hygrothermo', 'humidity'), r.Humidity())
         else:
-            print ("{} added".format(sensor['name']))
-            print ("{}".format(sensor['period']))
-            print ("{}".format(sensor['min']))
-            print ("{}".format(sensor['max']))
-            print ("{}".format(sensor['channel']))
+            print("{} added".format(sensor['name']))
+            print("{}".format(sensor['period']))
+            print("{}".format(sensor['min']))
+            print("{}".format(sensor['max']))
+            print("{}".format(sensor['channel']))
             root.add_resource((sensor['name'],),
                               r.Resource_Template(sensor['name'],
                                                   sensor['period'],
