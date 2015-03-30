@@ -33,34 +33,37 @@ def main():
     root.add_resource(('hello',), r.HelloWorld())
     root.add_resource(('time',), r.LocalTime())
     root.add_resource(('alert',), r.Alert())
-    
+    #root.add_resource(('other', 'block'), BlockResource())
+    #root.add_resource(('other', 'separate'), SeparateLargeResource())
+
+
     with open('config.json') as data_file:
         sensor_list = json.load(data_file)['sensors']
     
     for sensor in sensor_list:
+        # Known sensors that has been pre-defined
         if sensor['name'] == 'accelerometer':
-            print("acceleration added ")
-            root.add_resource(('acceleration',), r.Acceleration())
+            root.add_resource(tuple(sensor['url'].split('/')), r.Acceleration())
         elif sensor['name'] == 'temperature':
-            print("temperature resource added ")
-            root.add_resource(('hygrothermo', 'temperature'), r.Temperature())
+            root.add_resource(tuple(sensor['url'].split('/')), r.Temperature())
         elif sensor['name'] == 'humidity':
-            print("humidity resource added ")
-            root.add_resource(('hygrothermo', 'humidity'), r.Humidity())
+            root.add_resource(tuple(sensor['url'].split('/')), r.Humidity())
+        # For unknown sensors, use template resource
         else:
-            print("{} added".format(sensor['name']))
-            print("{}".format(sensor['period']))
-            print("{}".format(sensor['min']))
-            print("{}".format(sensor['max']))
-            print("{}".format(sensor['channel']))
-            root.add_resource((sensor['name'],),
-                              r.Resource_Template(sensor['name'],
-                                                  sensor['period'],
-                                                  sensor['min'],
-                                                  sensor['max'],
-                                                  sensor['channel']))
-    #root.add_resource(('other', 'block'), BlockResource())
-    #root.add_resource(('other', 'separate'), SeparateLargeResource())
+            root.add_resource(tuple(sensor['url'].split('/')),
+                              r.ResourceTemplate(sensor['name'],
+                                                 sensor['active'],
+                                                 sensor['period'],
+                                                 sensor['min'],
+                                                 sensor['max'],
+                                                 sensor['channel']))
+
+        print("\n{} resource added to path {}".format(sensor['name'], sensor['url']))
+        for entry in sensor:
+            if entry != 'name' and entry != 'url':
+                print("{}:{}".format(entry, sensor[entry]))
+
+
 
     asyncio.async(aiocoap.Context.create_server_context(root))
 

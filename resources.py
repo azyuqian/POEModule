@@ -441,18 +441,20 @@ class Humidity(HygroThermo):
         return response
 
 
-class Resource_Template(resource.ObservableResource):
-    def __init__(self, name=None, period=3, min=0, max=1023, channel=0):
-        super(Resource_Template, self).__init__()
+class ResourceTemplate(resource.ObservableResource):
+    def __init__(self, name=None, active=False, period=3, min=0, max=1023, channel=0):
+        super(ResourceTemplate, self).__init__()
         
         self.observe_period = period
         self.fp_format = r_defs.DEFAULT_FP_FORMAT
-        self.payload = PayloadTable(name, True, self.observe_period)
         self.sensor = MCP3008()
+        self.active = active
         self.channel = channel
         self.min = min
         self.max = max
         self.name = name
+
+        self.payload = PayloadTable(name, self.active, self.observe_period)
         
         self.notify()
     
@@ -462,7 +464,7 @@ class Resource_Template(resource.ObservableResource):
     
     @asyncio.coroutine
     def render_GET(self, request):
-        reading = self.sensor._read_channel_raw(self.channel)
+        reading = self.sensor.read_channel_raw(self.channel)
         reading_conv = ((reading/1024) * (self.max-self.min)) + self.min
         json_temp_resource = json.dumps({self.name: format(reading_conv, self.fp_format)})
         payload = PayloadWrapper.wrap(json_temp_resource, self.payload)
