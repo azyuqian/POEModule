@@ -1,6 +1,8 @@
 import json
 import datetime
 
+from defs import *
+
 """ CoAP content format codes by media types
     Reference [RFC7252, Section 12.3]: http://tools.ietf.org/html/rfc7252 """
 # plain text/string encoded in utf-8
@@ -10,11 +12,6 @@ LINK_FORMAT_CODE = 40
 # application/json
 JSON_FORMAT_CODE = 50
 
-# Constant definitions
-# string encode format
-UTF8 = 'utf-8'
-# default resource data decimal format (2 digits after decimal points)
-DEFAULT_FP_FORMAT = '.{}f'.format(2)
 # payload wrapper fields
 NAME_FIELD = 'name'
 ACTIVE_FIELD = 'active'

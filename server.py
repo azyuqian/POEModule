@@ -37,11 +37,11 @@ def main():
     root.add_resource(('alert',), r.Alert())
     
     with open('config.json') as data_file:
-        sensorlist = json.load(data_file)
+        sensorlist = json.load(data_file)['sensors']
     
-    for sensor in sensorlist['sensors']:
-        if sensor['name'] is "accelerometer":
-            print ("acceleration  added ")
+    for sensor in sensorlist:
+        if sensor['name'] == "accelerometer":
+            print ("acceleration added ")
             root.add_resource(('acceleration',), r.Acceleration())
         elif sensor['name'] == "temperature":
             print ("temperature resource added ")
@@ -55,7 +55,12 @@ def main():
             print ("{}".format(sensor['min']))
             print ("{}".format(sensor['max']))
             print ("{}".format(sensor['channel']))
-            root.add_resource((sensor['name'],), r.Resource_Template(sensor['name'], sensor['period'], sensor['min'], sensor['max'], sensor['channel']))
+            root.add_resource((sensor['name'],),
+                              r.Resource_Template(sensor['name'],
+                                                  sensor['period'],
+                                                  sensor['min'],
+                                                  sensor['max'],
+                                                  sensor['channel']))
     #root.add_resource(('other', 'block'), BlockResource())
     #root.add_resource(('other', 'separate'), SeparateLargeResource())
 

@@ -1,7 +1,21 @@
 {
-  "sensors": {
-    "temperature",
-    "humidity",
-    "AccX" : {"period":"3", "channel": "0","min":"-3", "max":"3" }
-  }
+  "server": {
+    "name": "local",
+    "IP": "localhost"
+  },
+  "sensors": [
+    {
+      "name": "temperature"
+    },
+    {
+      "name": "humidity"
+    },
+    {
+      "name": "AccX",
+      "period": 3,
+      "min": -3,
+      "max": 3,
+      "channel": 0
+    }
+  ]
 }

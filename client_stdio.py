@@ -1,12 +1,11 @@
 import sys
-from time import time
 import logging
+import json
 import asyncio
 import socket
 
 from aiocoap import *
-
-RPi_IP = '192.168.2.20'
+from defs import *
 
 logging.basicConfig(level=logging.INFO)
 
@@ -16,8 +15,8 @@ def get_impl(resource=''):
     context = yield from Context.create_client_context()
 
     request = Message(code=GET)
-    request.set_request_uri('coap://{}/{}'.format(RPi_IP, resource))
-    print("{}, {}".format(request.opt.uri_host, request.opt.uri_path))
+    request.set_request_uri('coap://{}/{}'.format(server_IP, resource))
+
     try:
         response = yield from context.request(request).response
     except Exception as e:
@@ -32,8 +31,8 @@ def put_impl(resource='', payload=""):
 
     yield from asyncio.sleep(2)
 
-    request = Message(code=PUT, payload=payload)
-    request.set_request_uri('coap://{}/{}'.format(RPi_IP, resource))
+    request = Message(code=PUT, payload=payload.encode(UTF8))
+    request.set_request_uri('coap://{}/{}'.format(server_IP, resource))
 
     try:
         response = yield from context.request(request).response
@@ -53,7 +52,7 @@ def observe_impl(resource=''):
     context = yield from Context.create_client_context()
 
     request = Message(code=GET)
-    request.set_request_uri('coap://{}/{}'.format(RPi_IP, resource))
+    request.set_request_uri('coap://{}/{}'.format(server_IP, resource))
 
     request.opt.observe = 0
     observation_is_over = asyncio.Future()
@@ -75,7 +74,7 @@ def observe_impl(resource=''):
     else:
         print(response_data.code, file=sys.stderr)
         if response_data.payload:
-            print(response_data.payload.decode('utf-8'), file=sys.stderr)
+            print(response_data.payload.decode(UTF8), file=sys.stderr)
         sys.exit(1)
 
     exit_reason = yield from observation_is_over
@@ -90,7 +89,7 @@ def process_input():
         if len(cmd_parts) is 0:
             continue
 
-        print("cmd = {}".format(cmd_parts))
+        #print("cmd = {}".format(cmd_parts))
         cmd = cmd_parts[0]
         args = cmd_parts[1:]
 
@@ -125,20 +124,22 @@ class Commands():
             print("Valid commands: " + ", ".join(commands))
 
     @staticmethod
-    def do_hello(code='GET', payload=""):
+    def do_hello(code='GET', *args):
         """ Implementation of hello command
 
         Based on code type, perform GET or PUT request on hello resource
         Example: >>>hello
         Example: >>>hello GET -o
-        Example: >>>hello PUT "new hello world!"
+        Example: >>>hello PUT new hello world!
 
         :param code: type of CoAP request
         :type code: str
-        :param payload: payload of PUT request
-        :type payload: str
+        :param args: payload of PUT request
+        :type args: str
         """
         loop = asyncio.get_event_loop()
+
+        payload = " ".join(args)
         if code == 'GET':
             if payload.startswith('-o'):
                 yield from observe_impl('hello')
@@ -149,20 +150,22 @@ class Commands():
 
 
     @staticmethod
-    def do_time(code='GET', payload=""):
+    def do_time(code='GET', *args):
         """ Implementation of hello command
 
         Based on code type, perform GET or PUT request on hello resource
         Example: >>>time
         Example: >>>time GET -o
-        Example: >>>time PUT "period 3"
+        Example: >>>time PUT period 3
 
         :param code: type of CoAP request
         :type code: str
-        :param payload: payload of PUT request
-        :type payload: str
+        :param args: payload of PUT request
+        :type args: str
         """
         loop = asyncio.get_event_loop()
+
+        payload = " ".join(args)
         if code == 'GET':
             if payload.startswith('-o'):
                 yield from observe_impl('time')
@@ -172,19 +175,16 @@ class Commands():
             yield from put_impl('time', payload)
 
 
-@asyncio.coroutine
-def print_hello():
-    while True:
-        print("{} - Hello world!".format(int(time())))
-        yield from asyncio.sleep(3)
-
-
 def main():
+    global server_IP
+
+    with open('config.json') as data_file:
+        server = json.load(data_file)['server']
+
+    server_IP = server['IP']
+
     loop = asyncio.get_event_loop()
     loop.run_until_complete(process_input())
-    #loop.add_reader(sys.stdin, process_input)
-
 
 if __name__ == '__main__':
     main()
-    #asyncio.get_event_loop().run_until_complete(main())
