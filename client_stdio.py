@@ -10,12 +10,12 @@ from defs import *
 logging.basicConfig(level=logging.INFO)
 
 @asyncio.coroutine
-def get_impl(resource=''):
+def get_impl(url=''):
 
     context = yield from Context.create_client_context()
 
     request = Message(code=GET)
-    request.set_request_uri('coap://{}/{}'.format(server_IP, resource))
+    request.set_request_uri('coap://{}/{}'.format(server_IP, url))
 
     try:
         response = yield from context.request(request).response
@@ -25,14 +25,14 @@ def get_impl(resource=''):
         print("Result: {}\n{}".format(response.code, response.payload))
 
 @asyncio.coroutine
-def put_impl(resource='', payload=""):
+def put_impl(url='', payload=""):
 
     context = yield from Context.create_client_context()
 
     yield from asyncio.sleep(2)
 
     request = Message(code=PUT, payload=payload.encode(UTF8))
-    request.set_request_uri('coap://{}/{}'.format(server_IP, resource))
+    request.set_request_uri('coap://{}/{}'.format(server_IP, url))
 
     try:
         response = yield from context.request(request).response
@@ -48,11 +48,11 @@ def incoming_observation(response):
     sys.stdout.buffer.flush()
 
 @asyncio.coroutine
-def observe_impl(resource=''):
+def observe_impl(url=''):
     context = yield from Context.create_client_context()
 
     request = Message(code=GET)
-    request.set_request_uri('coap://{}/{}'.format(server_IP, resource))
+    request.set_request_uri('coap://{}/{}'.format(server_IP, url))
 
     request.opt.observe = 0
     observation_is_over = asyncio.Future()
@@ -96,7 +96,14 @@ def process_input():
         try:
             method = getattr(Commands, 'do_' + cmd)
         except AttributeError:
-            print("Error: no such command.")
+            if cmd in resources:
+                try:
+                    yield from Commands.do_resource(cmd, *args)
+                except Exception as e:
+                    print("Error: {}".format(e))
+            else:
+                print("Error: no such command.")
+
         else:
             try:
                 yield from method(*args)
@@ -119,72 +126,67 @@ class Commands():
         if command:
             print(getattr(Commands, 'do_'+command).__doc__)
         else:
-            commands = [cmd[3:] for cmd in dir(Commands) if cmd.startswith('do_')]
+            commands = [cmd[3:] for cmd in dir(Commands)
+                        if cmd.startswith('do_') and cmd != 'do_resource']
             print("Valid commands: " + ", ".join(commands))
+            print("Valid resources: " + ", ".join(resources))
+            print("\n'help [command]' or 'help resource' for more details\n")
 
         # Empty yield to avoid NoneType error
         yield
 
     @staticmethod
-    def do_hello(code='GET', *args):
-        """ Implementation of hello command
+    def do_resource(name, code='GET', *args):
+        """ General implementation of resource related command
+        Syntax: >>>[resource] [code] ([-o]) ([payload])
+        resource: full resource list can be acquired by help command
+        code: GET/PUT
+        -o: observe
 
-        Based on code type, perform GET or PUT request on hello resource
-        Example: >>>hello
-        Example: >>>hello GET -o
-        Example: >>>hello PUT new hello world!
-
+        :param name: name of the resource
+        :type code: str
         :param code: type of CoAP request
         :type code: str
-        :param args: payload of PUT request
+        :param args: option or payload of PUT request
         :type args: str
         """
-        loop = asyncio.get_event_loop()
-
         payload = " ".join(args)
+        resource = resources[name]
+        url = resource['url']
+        print("do_resource: payload={}".format(payload))
         if code == 'GET':
             if payload.startswith('-o'):
-                yield from observe_impl('hello')
+                if resource['active'] is True:
+                    yield from observe_impl(url)
+                else:
+                    yield from get_impl(url)
+                    print("Warning: resource is not observable")
             else:
-                yield from get_impl('hello')
+                yield from get_impl(url)
         elif code == 'PUT':
-            yield from put_impl('hello', payload)
-        else:
-            raise AttributeError("Invalid command")
-
-    @staticmethod
-    def do_time(code='GET', *args):
-        """ Implementation of hello command
-
-        Based on code type, perform GET or PUT request on hello resource
-        Example: >>>time
-        Example: >>>time GET -o
-        Example: >>>time PUT period 3
-
-        :param code: type of CoAP request
-        :type code: str
-        :param args: payload of PUT request
-        :type args: str
-        """
-        loop = asyncio.get_event_loop()
-
-        payload = " ".join(args)
-        if code == 'GET':
-            if payload.startswith('-o'):
-                yield from observe_impl('time')
-            else:
-                yield from get_impl('time')
-        elif code == 'PUT':
-            yield from put_impl('time', payload)
+            yield from put_impl(url, payload)
         else:
             raise AttributeError("Invalid command")
 
 
 def main():
     global server_IP
+    global resources
+
+    # default resources
+    resources = {'hello': {'url': 'hello'},
+                 'time': {'url': 'time'}}
 
     with open('config.json') as data_file:
-        server = json.load(data_file)['server']
+        data = json.load(data_file)
+        server = data['server']
+        for r in data['sensors']:
+            resources[r['name']] = {i:r[i] for i in r if i != 'name'}
+            # add default activeness as "false" - i.e. not observable
+            if 'active' not in resources[r['name']]:
+                resources[r['name']]['active'] = False
+
+    print("{}".format(resources))
 
     server_IP = server['IP']
 
