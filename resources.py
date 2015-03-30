@@ -11,8 +11,65 @@ from resources_def import UTF8 as UTF8
 from resources_def import PayloadWrapper
 import resources_def as r_defs
 
-from sensors.mcp3008 import MCP3008
-from sensors.temp_sensor import WaitingSht15
+import platform
+if platform.machine() == 'x86_64':
+  from sensors.mcp3008 import MCP3008Mock as MCP3008
+  from sensors.temp_sensor import WaitingSht15Mock as WaitingSht15
+else:
+  from sensors.mcp3008 import MCP3008
+  from sensors.temp_sensor import WaitingSht15
+
+
+class RootResource(resource.Resource):
+    """
+    Example Resource that provides list of links hosted by a server.
+    Normally it should be hosted at /
+    """
+
+    def __init__(self, root):
+        resource.Resource.__init__(self)
+        self.root = root
+
+    @asyncio.coroutine
+    def render_POST(self, request):
+        payload = request.payload.decode(UTF8)
+
+        import json
+        try:
+          jpayload = json.loads(payload)
+        except Exception as e:
+          # JSON parsing error
+          err_msg = ("Invalid JSON format: " + str(e)).encode(UTF8)
+          err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
+          err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+          return err_response
+
+        try:
+          path = jpayload['path']
+          resource_name = jpayload['resource']
+        except Exception as e:
+          # Invalid JSON contents
+          err_msg = ("Invalid JSON contents: " + str(e)).encode(UTF8)
+          err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
+          err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+          return err_response
+
+        # Try to locate the resource class using its name(resource_name)
+        if resource_name not in IMPLEMENTED_REOURCES:
+            err_msg = ("Resource not implemented").encode(UTF8)
+            err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
+            err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+            return err_response
+
+        from aiocoap.resource import Site
+        root = Site()
+        root.add_resource((path), IMPLEMENTED_REOURCES[resource_name]())
+        asyncio.async(aiocoap.Context.create_server_context(root))
+
+        payload = 'Success'.encode(UTF8)
+        response = aiocoap.Message(code=aiocoap.CHANGED, payload=payload)
+        response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+        return response
 
 
 # FIXME: This resource is broken
@@ -156,7 +213,6 @@ class Alert(resource.ObservableResource):
         #if total_acceleration > THRESHOLD:
           #return True
 
-        print(self.count)
         if self.count > 10:
           return True
         else:
@@ -383,3 +439,77 @@ class Humidity(HygroThermo):
         response.opt.content_format = r_defs.TEXT_PLAIN_CODE
 
         return response
+
+
+class Resource_Template(resource.ObservableResource):
+    def __init__(self, name=None, period=3, min=0, max=1023, channel=0):
+        super(Resource_Template, self).__init__()
+        
+        self.observe_period = period
+        self.fp_format = r_defs.DEFAULT_FP_FORMAT
+        self.payload = PayloadTable(name, True, self.observe_period)
+        self.sensor = MCP3008()
+        self.channel = channel
+        self.min = min
+        self.max = max
+        self.name = name
+        
+        self.notify()
+    
+    def notify(self):
+        self.updated_state()
+        asyncio.get_event_loop().call_later(self.observe_period, self.notify)
+    
+    @asyncio.coroutine
+    def render_GET(self, request):
+        reading = self.sensor._read_channel_raw(self.channel)
+        reading_conv = ((reading/1024) * ( self.max - self.min)) + (self.min)
+        json_temp_resource = json.dumps({self.name: format(reading_conv, self.fp_format)})
+        payload = PayloadWrapper.wrap(json_temp_resource, self.payload)
+        
+        response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
+        response.opt.content_format = r_defs.JSON_FORMAT_CODE
+        
+        return response
+
+    @asyncio.coroutine
+    def render_PUT(self, request):
+        err_msg = ("argument is not correctly formatted.\n\n"                           \
+                    "Follow 'period [sec]' to update period to observe 'humidity'"       \
+                    "resource. [sec] > 2.\n\n").encode(UTF8)
+        err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
+        err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+
+        args = request.payload.decode(UTF8).split()
+        if len(args) != 2:
+            return err_response
+            
+        # Observe with period = 0 is not allowed
+        if (args[0] == 'period') and (args[1].isdigit() and args[1] != '0'):
+            new_period = int(args[1])
+            # Physical constraint of the sensor does not allow update faster than 1 sec;
+            #   double the value to improve reliability
+            if new_period <= 2:
+                return err_response
+            self.observe_period = new_period
+            # PUT new value to non-data field requires updating payload wrapper content
+            self.payload.set_sample_rate(self.observe_period)
+        elif args[0] == 'min':
+            self.min = int(args[1])
+        elif args[0] == 'max':
+            self.max = int(args[1])
+        elif args[0] == 'channel':
+            self.channel = int(args[1])
+        elif args[0] == 'decimal':
+            self.fp_format = '.{}f'.format(int(args[1]))
+        else:
+            return err_response
+            
+        payload = ("PUT %s=%s to resource" % (args[0], args[1])).encode(UTF8)
+        response = aiocoap.Message(code=aiocoap.CHANGED, payload=payload)
+        response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+        
+        return response
+
+# Define the resources can be added dynamically
+IMPLEMENTED_REOURCES = {'HelloWorld': HelloWorld}
