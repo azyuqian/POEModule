@@ -87,6 +87,7 @@ def observe_impl(url=''):
         print(response_data.code, file=sys.stderr)
         if response_data.payload:
             print(response_data.payload.decode(UTF8), file=sys.stderr)
+            print("\n")
         sys.exit(1)
 
     exit_reason = yield from observation_is_over
@@ -182,10 +183,11 @@ class Commands():
 
         # default value of other options
         url = name
-        min = -1
-        max = -1
         active = False
         frequency = 0
+        b_range = False
+        min = None
+        max = None
 
         if options.url:
             url = options.url
@@ -196,6 +198,7 @@ class Commands():
             try:
                 min = int(options.min)
                 max = int(options.max)
+                b_range = True
             except ValueError as e:
                 raise p.error(e)
 
@@ -209,13 +212,19 @@ class Commands():
                 except ValueError as e:
                     raise p.error(e)
 
-        yield from post_impl(json.dumps({'name': name,
-                                         'url': url,
-                                         'channel': channel,
-                                         'min': min,
-                                         'max': max,
-                                         'active': active,
-                                         'frequency': frequency}))
+        # add new resource to resource list
+        resources[name] = {'url': url,
+                           'channel': channel,
+                           'active': active,
+                           'frequency': frequency}
+        if b_range is True:
+            resources[name]['min'] = min
+            resources[name]['max'] = max
+
+        # convert resource to payload (add name field)
+        payload = resources[name]
+        payload['name'] = name
+        yield from post_impl(json.dumps(payload))
 
     @staticmethod
     def do_resource(name, code='GET', *args):

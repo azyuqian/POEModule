@@ -59,12 +59,11 @@ class RootResource(resource.Resource):
         # Try to locate the resource class using its name(resource_name)
         if resource_name in IMPLEMENTED_RESOURCES:
             root.add_resource(tuple(path.split('/')), IMPLEMENTED_RESOURCES[resource_name]())
+            # Refresh server
             asyncio.async(aiocoap.Context.create_server_context(root))
         else:
             try:
                 active = jpayload['active']
-                min = jpayload['min']
-                max = jpayload['max']
                 period = jpayload['frequency']
                 channel = jpayload['channel']
             except Exception as e:
@@ -74,7 +73,11 @@ class RootResource(resource.Resource):
                 err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
                 return err_response
 
-            if min == -1 or max == -1:
+            try:
+                min = jpayload['min']
+                max = jpayload['max']
+            # In case of min/max is not given
+            except KeyError:
                 root.add_resource(tuple(path.split('/')),
                                   ResourceTemplate(name=resource_name,
                                                    active=active,
@@ -88,6 +91,7 @@ class RootResource(resource.Resource):
                                                    min=min,
                                                    max=max,
                                                    channel=channel))
+            # Refresh server
             asyncio.async(aiocoap.Context.create_server_context(root))
 
         payload = "Successful add {} at /{}/".format(resource_name, path).encode(UTF8)
