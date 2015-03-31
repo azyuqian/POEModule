@@ -21,6 +21,7 @@ import resources as r
 # logging setup
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('coap-server').setLevel(logging.DEBUG)
+# FIXME: Add logging function to replace "print" in the code
 
 
 def main():
@@ -30,18 +31,20 @@ def main():
     # default resources to add
     root.add_resource('', r.RootResource(root))
     root.add_resource(('.well-known', 'core'), r.CoreResource(root))
-    root.add_resource(('hello',), r.HelloWorld())
-    root.add_resource(('time',), r.LocalTime())
-    root.add_resource(('alert',), r.Alert())
-    #root.add_resource(('other', 'block'), BlockResource())
-    #root.add_resource(('other', 'separate'), SeparateLargeResource())
+
+    # temporarily disabled
+    #root.add_resource(('alert',), r.Alert())
 
     with open('config.json') as data_file:
         sensor_list = json.load(data_file)['sensors']
     
     for sensor in sensor_list:
         # Known sensors that has been pre-defined
-        if sensor['name'] == 'accelerometer':
+        if sensor['name'] == 'hello':
+            root.add_resource(tuple(sensor['url'].split('/')), r.HelloWorld())
+        elif sensor['name'] == 'time':
+            root.add_resource(tuple(sensor['url'].split('/')), r.LocalTime())
+        elif sensor['name'] == 'accelerometer':
             root.add_resource(tuple(sensor['url'].split('/')), r.Acceleration())
         elif sensor['name'] == 'temperature':
             root.add_resource(tuple(sensor['url'].split('/')), r.Temperature())
@@ -57,10 +60,12 @@ def main():
                                                  sensor['max'],
                                                  sensor['channel']))
 
-        print("\n{} resource added to path {}".format(sensor['name'], sensor['url']))
+        print("{} resource added to path /{}".format(sensor['name'], sensor['url']))
+        '''
         for entry in sensor:
             if entry != 'name' and entry != 'url':
                 print("{}:{}".format(entry, sensor[entry]))
+        '''
 
     asyncio.async(aiocoap.Context.create_server_context(root))
 

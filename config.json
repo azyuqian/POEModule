@@ -5,12 +5,23 @@
   },
   "sensors": [
     {
+      "name": "hello",
+      "url": "hello"
+    },
+    {
+      "name": "time",
+      "url": "time",
+      "active": true
+    },
+    {
       "name": "temperature",
-      "url": "hygrothermo/temperature"
+      "url": "hygrothermo/temperature",
+      "active": true
     },
     {
       "name": "humidity",
-      "url": "hygrothermo/humidity"
+      "url": "hygrothermo/humidity",
+      "active": true
     },
     {
       "name": "AccX",

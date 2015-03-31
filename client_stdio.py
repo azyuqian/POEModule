@@ -8,6 +8,7 @@ from aiocoap import *
 from defs import *
 
 logging.basicConfig(level=logging.INFO)
+# FIXME: Add logging function to replace "print" in the code
 
 @asyncio.coroutine
 def post_impl(jargs):
@@ -21,7 +22,7 @@ def post_impl(jargs):
     except Exception as e:
         print("Failed to post new resource: {}".format(e))
     else:
-        print("Result: {}\n{}".format(response.code, response.payload))
+        print("Result: {}\n{}".format(response.code, response.payload.decode(UTF8)))
 
 @asyncio.coroutine
 def get_impl(url=''):
@@ -35,7 +36,10 @@ def get_impl(url=''):
     except Exception as e:
         print("Failed to fetch resource: {}".format(e))
     else:
-        print("Result: {}\n{}".format(response.code, response.payload))
+        payload = response.payload.decode(UTF8)
+        print("Result: {}\n{}".format(response.code, payload))
+        return payload
+
 
 @asyncio.coroutine
 def put_impl(url='', payload=""):
@@ -51,7 +55,7 @@ def put_impl(url='', payload=""):
     except Exception as e:
         print("Failed to update resource: {}".format(e))
     else:
-        print("Result: {}\n{}".format(response.code, response.payload))
+        print("Result: {}\n{}".format(response.code, response.payload.decode(UTF8)))
 
 
 def incoming_observation(response):
@@ -81,7 +85,7 @@ def observe_impl(url=''):
         sys.exit(1)
 
     if response_data.code.is_successful():
-        sys.stdout.buffer.write(response_data.payload)
+        sys.stdout.buffer.write(response_data.payload.decode(UTF8))
         sys.stdout.buffer.flush()
     else:
         print(response_data.code, file=sys.stderr)
@@ -94,7 +98,19 @@ def observe_impl(url=''):
     print(exit_reason, file=sys.stderr)
 
 @asyncio.coroutine
-def process_input():
+def client_console():
+    # First, print general info and help menu on console when client starts
+    print("Connecting to server {}...\n".format(server_IP))
+    print("Probing available resources...")
+    for r in resources:
+        # test GET each resource
+        yield from Commands.do_resource(r, 'GET')
+        print("Success! Resource {} is available at path /{}\n".format(r, resources[r]['url']))
+    print("Done probing...")
+    print("Initializing command prompt...\n")
+    yield from Commands.do_help()
+
+    # Start acquiring user input
     while True:
         cmdline = input(">>>")
         cmd_parts = cmdline.split()
@@ -244,7 +260,8 @@ class Commands():
         payload = " ".join(args)
         resource = resources[name]
         url = resource['url']
-        print("do_resource: payload={}".format(payload))
+
+        #print("do_resource: payload={}".format(payload))
         if code == 'GET':
             if payload.startswith('-o'):
                 if resource['active'] is True:
@@ -268,21 +285,23 @@ def main():
     resources = {'hello': {'url': 'hello'},
                  'time': {'url': 'time'}}
 
+    # FIXME: resource info is better acquired from server, provided server's IP
     with open('config.json') as data_file:
         data = json.load(data_file)
-        server = data['server']
+        server_IP = data['server']['IP']
+        # re-format each sensor entry for client to use
         for r in data['sensors']:
-            resources[r['name']] = {i:r[i] for i in r if i != 'name'}
-            # add default activeness as "false" - i.e. not observable
-            if 'active' not in resources[r['name']]:
-                resources[r['name']]['active'] = False
+            resources[r['name']] = {i: r[i] for i in r if i != 'name'}
 
-    print("{}".format(resources))
+        # add default activeness as "false" - i.e. not observable
+        for r in resources:
+            if 'active' not in resources[r]:
+                resources[r]['active'] = False
 
-    server_IP = server['IP']
+    #print("{}".format(resources))
 
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(process_input())
+    loop.run_until_complete(client_console())
 
 if __name__ == '__main__':
     main()
