@@ -36,7 +36,6 @@ def main():
     #root.add_resource(('other', 'block'), BlockResource())
     #root.add_resource(('other', 'separate'), SeparateLargeResource())
 
-
     with open('config.json') as data_file:
         sensor_list = json.load(data_file)['sensors']
     
@@ -62,8 +61,6 @@ def main():
         for entry in sensor:
             if entry != 'name' and entry != 'url':
                 print("{}:{}".format(entry, sensor[entry]))
-
-
 
     asyncio.async(aiocoap.Context.create_server_context(root))
 

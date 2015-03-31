@@ -53,14 +53,11 @@ class RootResource(resource.Resource):
             err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
             return err_response
 
-        from aiocoap.resource import Site
-        root = Site()
-
         # Try to locate the resource class using its name(resource_name)
         if resource_name in IMPLEMENTED_RESOURCES:
-            root.add_resource(tuple(path.split('/')), IMPLEMENTED_RESOURCES[resource_name]())
+            self.root.add_resource(tuple(path.split('/')), IMPLEMENTED_RESOURCES[resource_name]())
             # Refresh server
-            asyncio.async(aiocoap.Context.create_server_context(root))
+            asyncio.async(aiocoap.Context.create_server_context(self.root))
         else:
             try:
                 active = jpayload['active']
@@ -78,13 +75,13 @@ class RootResource(resource.Resource):
                 max = jpayload['max']
             # In case of min/max is not given
             except KeyError:
-                root.add_resource(tuple(path.split('/')),
+                self.root.add_resource(tuple(path.split('/')),
                                   ResourceTemplate(name=resource_name,
                                                    active=active,
                                                    period=period,
                                                    channel=channel))
             else:
-                root.add_resource(tuple(path.split('/')),
+                self.root.add_resource(tuple(path.split('/')),
                                   ResourceTemplate(name=resource_name,
                                                    active=active,
                                                    period=period,
@@ -92,7 +89,7 @@ class RootResource(resource.Resource):
                                                    max=max,
                                                    channel=channel))
             # Refresh server
-            asyncio.async(aiocoap.Context.create_server_context(root))
+            asyncio.async(aiocoap.Context.create_server_context(self.root))
 
         payload = "Successful add {} at /{}/".format(resource_name, path).encode(UTF8)
         response = aiocoap.Message(code=aiocoap.CREATED, payload=payload)
