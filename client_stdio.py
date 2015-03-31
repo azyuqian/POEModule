@@ -150,9 +150,9 @@ class Commands():
     @staticmethod
     def do_add(name, *args):
         """ Implementation of add command for POST new resource
-        Syntax: >>>add [name] -c [ADC_channel] (-u [url]) (-l [min] -h [max])
+        Syntax: >>>add [name] -c [ADC_channel] (-u [url]) (-l [min] -m [max])
                         (-o) (-f [observe_frequency])
-        Example: >>>add new_r -u myR/r1 -m 0 1 -
+        Example: >>>add new_r -c0 -u myR/r1 -l0 -m10 -o -f5
 
         :param name: name of the resource
         :type code: str

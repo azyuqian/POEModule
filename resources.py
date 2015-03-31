@@ -58,7 +58,7 @@ class RootResource(resource.Resource):
 
         # Try to locate the resource class using its name(resource_name)
         if resource_name in IMPLEMENTED_RESOURCES:
-            root.add_resource(path, IMPLEMENTED_RESOURCES[resource_name]())
+            root.add_resource(tuple(path.split('/')), IMPLEMENTED_RESOURCES[resource_name]())
             asyncio.async(aiocoap.Context.create_server_context(root))
         else:
             try:
@@ -74,21 +74,23 @@ class RootResource(resource.Resource):
                 err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
                 return err_response
 
-            err_msg = "Resource not implemented, using template resource".encode(UTF8)
             if min == -1 or max == -1:
-                root.add_resource(path, ResourceTemplate(name=resource_name,
-                                                         active=active,
-                                                         period=period,
-                                                         channel=channel))
+                root.add_resource(tuple(path.split('/')),
+                                  ResourceTemplate(name=resource_name,
+                                                   active=active,
+                                                   period=period,
+                                                   channel=channel))
             else:
-                root.add_resource(path, ResourceTemplate(name=resource_name,
-                                                         active=active,
-                                                         period=period,
-                                                         min=min,
-                                                         max=max,
-                                                         channel=channel))
+                root.add_resource(tuple(path.split('/')),
+                                  ResourceTemplate(name=resource_name,
+                                                   active=active,
+                                                   period=period,
+                                                   min=min,
+                                                   max=max,
+                                                   channel=channel))
+            asyncio.async(aiocoap.Context.create_server_context(root))
 
-        payload = "Successful add {} at /{}/".format(path, resource_name).encode(UTF8)
+        payload = "Successful add {} at /{}/".format(resource_name, path).encode(UTF8)
         response = aiocoap.Message(code=aiocoap.CREATED, payload=payload)
         response.opt.content_format = r_defs.TEXT_PLAIN_CODE
         return response
