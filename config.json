@@ -1,7 +1,7 @@
 {
   "server": {
-    "name": "local",
-    "IP": "localhost"
+    "name": "RPi",
+    "IP": "192.168.2.20"
   },
   "sensors": [
     {
