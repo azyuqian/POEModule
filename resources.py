@@ -19,6 +19,8 @@ else:
     from sensors.mcp3008 import MCP3008
     from sensors.temp_sensor import WaitingSht15
 
+# FIXME: Add logging
+
 
 class RootResource(resource.Resource):
     """
@@ -56,8 +58,7 @@ class RootResource(resource.Resource):
         # Try to locate the resource class using its name(resource_name)
         if resource_name in IMPLEMENTED_RESOURCES:
             self.root.add_resource(tuple(path.split('/')), IMPLEMENTED_RESOURCES[resource_name]())
-            # Refresh server
-            asyncio.async(aiocoap.Context.create_server_context(self.root))
+        # Use template resource if resource name is not known
         else:
             try:
                 active = jpayload['active']
@@ -76,20 +77,21 @@ class RootResource(resource.Resource):
             # In case of min/max is not given
             except KeyError:
                 self.root.add_resource(tuple(path.split('/')),
-                                  ResourceTemplate(name=resource_name,
-                                                   active=active,
-                                                   period=period,
-                                                   channel=channel))
+                                       ResourceTemplate(name=resource_name,
+                                                        active=active,
+                                                        period=period,
+                                                        channel=channel))
             else:
                 self.root.add_resource(tuple(path.split('/')),
-                                  ResourceTemplate(name=resource_name,
-                                                   active=active,
-                                                   period=period,
-                                                   min=min,
-                                                   max=max,
-                                                   channel=channel))
-            # Refresh server
-            asyncio.async(aiocoap.Context.create_server_context(self.root))
+                                       ResourceTemplate(name=resource_name,
+                                                        active=active,
+                                                        period=period,
+                                                        min=min,
+                                                        max=max,
+                                                        channel=channel))
+
+        # Refresh server
+        asyncio.async(aiocoap.Context.create_server_context(self.root))
 
         payload = "Successful add {} at /{}/".format(resource_name, path).encode(UTF8)
         response = aiocoap.Message(code=aiocoap.CREATED, payload=payload)
