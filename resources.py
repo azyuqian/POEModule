@@ -44,8 +44,8 @@ class RootResource(resource.Resource):
             return err_response
 
         try:
-            path = jpayload['path']
-            resource_name = jpayload['resource']
+            path = jpayload['url']
+            resource_name = jpayload['name']
         except Exception as e:
             # Invalid JSON contents
             err_msg = ("Invalid JSON contents: " + str(e)).encode(UTF8)
@@ -53,20 +53,43 @@ class RootResource(resource.Resource):
             err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
             return err_response
 
-        # Try to locate the resource class using its name(resource_name)
-        if resource_name not in IMPLEMENTED_RESOURCES:
-            err_msg = "Resource not implemented".encode(UTF8)
-            err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
-            err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
-            return err_response
-
         from aiocoap.resource import Site
         root = Site()
-        root.add_resource(path, IMPLEMENTED_RESOURCES[resource_name]())
-        asyncio.async(aiocoap.Context.create_server_context(root))
 
-        payload = "Success".encode(UTF8)
-        response = aiocoap.Message(code=aiocoap.CHANGED, payload=payload)
+        # Try to locate the resource class using its name(resource_name)
+        if resource_name in IMPLEMENTED_RESOURCES:
+            root.add_resource(path, IMPLEMENTED_RESOURCES[resource_name]())
+            asyncio.async(aiocoap.Context.create_server_context(root))
+        else:
+            try:
+                active = jpayload['active']
+                min = jpayload['min']
+                max = jpayload['max']
+                period = jpayload['frequency']
+                channel = jpayload['channel']
+            except Exception as e:
+                # Invalid JSON contents
+                err_msg = ("Invalid JSON contents: " + str(e)).encode(UTF8)
+                err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
+                err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+                return err_response
+
+            err_msg = "Resource not implemented, using template resource".encode(UTF8)
+            if min == -1 or max == -1:
+                root.add_resource(path, ResourceTemplate(name=resource_name,
+                                                         active=active,
+                                                         period=period,
+                                                         channel=channel))
+            else:
+                root.add_resource(path, ResourceTemplate(name=resource_name,
+                                                         active=active,
+                                                         period=period,
+                                                         min=min,
+                                                         max=max,
+                                                         channel=channel))
+
+        payload = "Successful add {} at /{}/".format(path, resource_name).encode(UTF8)
+        response = aiocoap.Message(code=aiocoap.CREATED, payload=payload)
         response.opt.content_format = r_defs.TEXT_PLAIN_CODE
         return response
 
@@ -130,7 +153,7 @@ class LocalTime(resource.ObservableResource):
         super(LocalTime, self).__init__()
 
         self.observe_period = 10
-        self.payload = PayloadTable('local time', True, self.observe_period)
+        self.payload = PayloadTable('time', True, self.observe_period)
 
         self.notify()
 
@@ -513,10 +536,9 @@ class ResourceTemplate(resource.ObservableResource):
         return response
 
 # Define the resources can be added dynamically
-IMPLEMENTED_RESOURCES = {'HelloWorld': HelloWorld,
-                         'LocalTime': LocalTime,
-                         'Alert': Alert,
-                         'Acceleration': Acceleration,
-                         'Temperature': Temperature,
-                         'Humidity': Humidity,
-                         'ResourceTemplate': ResourceTemplate}
+IMPLEMENTED_RESOURCES = {'hello': HelloWorld,
+                         'time': LocalTime,
+                         'alert': Alert,
+                         'acceleration': Acceleration,
+                         'temperature': Temperature,
+                         'humidity': Humidity}

@@ -10,8 +10,21 @@ from defs import *
 logging.basicConfig(level=logging.INFO)
 
 @asyncio.coroutine
-def get_impl(url=''):
+def post_impl(jargs):
+    context = yield from Context.create_client_context()
 
+    request = Message(code=POST, payload=jargs.encode(UTF8))
+    request.set_request_uri('coap://{}/'.format(server_IP))
+
+    try:
+        response = yield from context.request(request).response
+    except Exception as e:
+        print("Failed to post new resource: {}".format(e))
+    else:
+        print("Result: {}\n{}".format(response.code, response.payload))
+
+@asyncio.coroutine
+def get_impl(url=''):
     context = yield from Context.create_client_context()
 
     request = Message(code=GET)
@@ -26,7 +39,6 @@ def get_impl(url=''):
 
 @asyncio.coroutine
 def put_impl(url='', payload=""):
-
     context = yield from Context.create_client_context()
 
     yield from asyncio.sleep(2)
@@ -136,8 +148,78 @@ class Commands():
         yield
 
     @staticmethod
+    def do_add(name, *args):
+        """ Implementation of add command for POST new resource
+        Syntax: >>>add [name] -c [ADC_channel] (-u [url]) (-l [min] -h [max])
+                        (-o) (-f [observe_frequency])
+        Example: >>>add new_r -u myR/r1 -m 0 1 -
+
+        :param name: name of the resource
+        :type code: str
+        :param args: option or payload of PUT request
+        :type args: str
+        """
+        import argparse
+
+        p = argparse.ArgumentParser(description=__doc__)
+        p.add_argument('-c', '--channel', help="ADC channel this resource is connected to")
+        p.add_argument('-u', '--url', help="new URL for the resource to post")
+        p.add_argument('-l', '--min', help="lower bound of resource data")
+        p.add_argument('-m', '--max', help="higher bound of resource data")
+        p.add_argument('-o', '--observe', help="Set the resource to be observable", action='store_true')
+        p.add_argument('-f', '--frequency', help="Set the frequency of observable")
+
+        options = p.parse_args(args)
+
+        # channel number is not optional
+        if not options.channel:
+            raise p.error("ADC Channel not found")
+        else:
+            try:
+                channel = int(options.channel)
+            except ValueError as e:
+                raise p.error(e)
+
+        # default value of other options
+        url = name
+        min = -1
+        max = -1
+        active = False
+        frequency = 0
+
+        if options.url:
+            url = options.url
+        else:
+            print("Warning: use resource name {} as url")
+
+        if options.min and options.max:
+            try:
+                min = int(options.min)
+                max = int(options.max)
+            except ValueError as e:
+                raise p.error(e)
+
+        if options.observe:
+            active = True
+
+            # only set frequency if resource is observable
+            if options.frequency:
+                try:
+                    frequency = int(options.frequency)
+                except ValueError as e:
+                    raise p.error(e)
+
+        yield from post_impl(json.dumps({'name': name,
+                                         'url': url,
+                                         'channel': channel,
+                                         'min': min,
+                                         'max': max,
+                                         'active': active,
+                                         'frequency': frequency}))
+
+    @staticmethod
     def do_resource(name, code='GET', *args):
-        """ General implementation of resource related command
+        """ General implementation of resource command for GET/PUT
         Syntax: >>>[resource] [code] ([-o]) ([payload])
         resource: full resource list can be acquired by help command
         code: GET/PUT
