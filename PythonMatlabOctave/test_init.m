@@ -2,7 +2,13 @@ function [ PARA ] = test_init( fName )
 % data are in the format of :
 % PARA1 PARA2 ... PARAn yyyy mm dd hh minmin ss 
 % i.e. last six numbers for time
-% e.g. [1,2,3,55,0,9999,4,9999,6,2015,04,01,01,02,03]
+% e.g. [1,2,3,55,0,NaN,4,9999,6,2015,04,01,01,02,03]
+
+% example use: 
+% filename = 'data.txt'; 
+% test_init(filename);
+% 
+% or: test_init('test.txt')
 
 %have to modify time_inst and #row&cols for ploting
 

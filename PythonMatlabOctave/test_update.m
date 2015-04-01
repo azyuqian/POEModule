@@ -4,6 +4,13 @@ function [ PARA ] = test_update( fName, newData )
 % i.e. last six numbers for time
 % e.g. [1,2,3,55,0,9999,4,9999,6,2015,04,01,01,02,03]
 
+% example use: 
+% filename = 'data.txt'; 
+% data_update=[1,2,3,55,0,9999,4,9999,6,2015,04,01,01,02,03];
+% test_update(filename,data_update);
+% 
+% or: test_init('test.txt',[1,NaN,3,55,0,9999,4,9999,6,2015,04,01,01,02,03]);
+
 %have to modify time_inst and #row&cols for ploting
 
     time_inst = newData(end-2)*3600+newData(end-1)*60+newData(end);
@@ -17,7 +24,7 @@ function [ PARA ] = test_update( fName, newData )
     hum_min  = 0;
     hum_max  = 100;
     
-    newData(newData>=9999) = NaN;
+    newData(~(newData<9999)) = NaN;
     
     [~,name,ext] = fileparts(fName);
     fNameToSave = strcat(name,'.mat');
