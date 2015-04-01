@@ -66,7 +66,7 @@ def plot_octave(jpayload):
         data += time
 
         print("data to plot: {}".format(data))
-        octave.test_update(data_file, data)
+        #octave.test_update(data_file, data)
 
 
 def incoming_observation(response):
@@ -364,7 +364,7 @@ def main():
     # Setup octave for data visualization and storage
     print("Initializing Octave database and visualizer")
     octave.addpath('./')
-    octave.test_init(data_file)
+    #octave.test_init(data_file)
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(client_console())
