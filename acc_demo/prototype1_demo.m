@@ -9,8 +9,8 @@ matlFile_temh = 'data_temh.txt';
 json2matlab( jsonFile_acce, jsonFile_temh, matlFile_acce, matlFile_temh );
 fileName_acce = matlFile_acce; fileName_temh = matlFile_temh;
 
-freq_acce = 2; % in Hz
-freq_temh = 2; % in Hz
+freq_acce = 4; % in Hz
+freq_temh = 4; % in Hz
 freq = lcm(freq_acce,freq_temh);
 
 g = 9.8; am = ceil(g);
