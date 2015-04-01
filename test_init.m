@@ -32,7 +32,7 @@ function [ PARA ] = test_init( fName )
     if (~exist(fName,'file'))
         disp('File does not exist, a new one will be created.');
         temp = []; %#ok<NASGU>
-        save(fName,'temp','-ASCII');
+        save(fName,'temp','-ascii');
     end
 
     data = load(fName);
@@ -50,6 +50,7 @@ function [ PARA ] = test_init( fName )
         end
 
         for i = 1:numpara
+            pause(0.1);
             subplot(plot_n_row,plot_n_col,i);
             
             if(~isempty(PARA{i}))

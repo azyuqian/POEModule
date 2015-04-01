@@ -20,10 +20,9 @@ def plot_octave(jpayload):
         octave.update_plot('data.txt', [3, 3, 3, None, None, 1111, 11, 11, 11, 11, 11])
         octave.save_database('data.txt')
     '''
-    if jpayload['name'] in resource_code:
-        code = resource_code[jpayload['name']]
+    if jpayload['name'] in demo_resources:
         time = []
-        data = [code]
+        data = []
 
         # Parse payload data
         import re
@@ -40,23 +39,34 @@ def plot_octave(jpayload):
             jvalue = json.loads(jpayload['data'])
             if jpayload['name'] == 'acceleration':
                 data += [float(jvalue['x']), float(jvalue['y']), float(jvalue['z']),
-                         None, None]
+                         float('NaN'), float('NaN'), float('NaN'), float('NaN'), float('NaN')]
             elif jpayload['name'] == 'temperature':
-                data += [None, None, None,
+                data += [float('NaN'), float('NaN'), float('NaN'),
                          float(jvalue['temperature']),
-                         None]
+                         float('NaN'), float('NaN'), float('NaN'), float('NaN')]
             elif jpayload['name'] == 'humidity':
-                data += [None, None, None, None,
-                         float(jvalue['humidity'])]
+                data += [float('NaN'), float('NaN'), float('NaN'), float('NaN'),
+                         float(jvalue['humidity']),
+                         float('NaN'), float('NaN'), float('NaN')]
+            elif jpayload['name'] == 'motion':
+                data += [float('NaN'), float('NaN'), float('NaN'), float('NaN'), float('NaN'),
+                         bool(jvalue['motion']),
+                         float('NaN'), float('NaN')]
+            elif jpayload['name'] == 'joystick':
+                data += [float('NaN'), float('NaN'), float('NaN'),
+                         float('NaN'), float('NaN'), float('NaN'),
+                         float('updown'), float('leftright')]
             else:
                 print("Warning: Unknown data\n")
-                data += [None, None, None, None, None]
+                data += [float('NaN'), float('NaN'), float('NaN'),
+                         float('NaN'), float('NaN'), float('NaN'),
+                         float('NaN'), float('NaN')]
         except Exception as e:
             raise Exception("Failed to parse data: {}".format(e))
         data += time
 
         print("data to plot: {}".format(data))
-        #octave.update_plot(data_file, data)
+        octave.test_update(data_file, data)
 
 
 def incoming_observation(response):
@@ -350,11 +360,12 @@ def main():
                 resources[r]['active'] = False
 
     #print("{}".format(resources))
-    '''
+
     # Setup octave for data visualization and storage
+    print("Initializing Octave database and visualizer")
     octave.addpath('./')
-    octave.database_init(datafile)
-    '''
+    print("File name = {}".format(data_file))
+    octave.test_init(data_file)
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(client_console())

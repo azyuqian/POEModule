@@ -40,7 +40,7 @@ function [ PARA ] = test_update( fName, newData )
     check_empty = fieldnames(data);
     
     if(isempty(data.(check_empty{1})))
-        save(fName,'newData','-ASCII');
+        save(fName,'newData','-ascii');
         test_init(fName);
     else
         name_para = fieldnames(data);
