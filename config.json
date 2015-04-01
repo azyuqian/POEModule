@@ -3,6 +3,10 @@
     "name": "RPi",
     "IP": "192.168.2.20"
   },
+  "client": {
+    "name": "myLaptop",
+    "datafile": "data.txt"
+  },
   "sensors": [
     {
       "name": "hello",

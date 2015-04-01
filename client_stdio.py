@@ -6,9 +6,64 @@ import socket
 
 from aiocoap import *
 from defs import *
+from oct2py import octave
 
 logging.basicConfig(level=logging.INFO)
 # FIXME: Add logging function to replace "print" in the code
+
+
+def plot_octave(jpayload):
+    '''
+    Example:
+        octave.database_init('data.txt')
+        acceleration:              x  y  z  tem,  hum   year  mon day hh  mm  ss
+        octave.update_plot('data.txt', [3, 3, 3, None, None, 1111, 11, 11, 11, 11, 11])
+        octave.save_database('data.txt')
+    '''
+    if jpayload['name'] in resource_code:
+        code = resource_code[jpayload['name']]
+        time = []
+        data = [code]
+
+        # Parse payload data
+        import re
+        time_str = re.split('[- :]', jpayload['time'])
+        try:
+            for i in range(5):
+                time += [int(time_str[i])]
+            time += [float(time_str[5])]
+        except ValueError as e:
+            print("Wrong time format: {}".format(e))
+            time = [0, 0, 0, 0, 0, 0.0]
+
+        try:
+            jvalue = json.loads(jpayload['data'])
+            if jpayload['name'] == 'acceleration':
+                data += [float(jvalue['x']), float(jvalue['y']), float(jvalue['z']),
+                         None, None]
+            elif jpayload['name'] == 'temperature':
+                data += [None, None, None,
+                         float(jvalue['temperature']),
+                         None]
+            elif jpayload['name'] == 'humidity':
+                data += [None, None, None, None,
+                         float(jvalue['humidity'])]
+            else:
+                print("Warning: Unknown data\n")
+                data += [None, None, None, None, None]
+        except Exception as e:
+            raise Exception("Failed to parse data: {}".format(e))
+        data += time
+
+        print("data to plot: {}".format(data))
+        #octave.update_plot(data_file, data)
+
+
+def incoming_observation(response):
+    jpayload = json.loads(response.payload.decode(UTF8))
+    print("Result: {}\n{}".format(response.code, jpayload))
+    plot_octave(jpayload)
+
 
 @asyncio.coroutine
 def post_impl(jargs):
@@ -20,12 +75,12 @@ def post_impl(jargs):
     try:
         response = yield from context.request(request).response
     except Exception as e:
-        print("Failed to post new resource: {}".format(e))
+        raise Exception("Failed to post new resource: {}".format(e))
     else:
         print("Result: {}\n{}".format(response.code, response.payload.decode(UTF8)))
 
 @asyncio.coroutine
-def get_impl(url=''):
+def get_impl(name, url=''):
     context = yield from Context.create_client_context()
 
     request = Message(code=GET)
@@ -34,12 +89,11 @@ def get_impl(url=''):
     try:
         response = yield from context.request(request).response
     except Exception as e:
-        print("Failed to fetch resource: {}".format(e))
+        raise Exception("Failed to fetch resource: {}".format(e))
     else:
-        payload = response.payload.decode(UTF8)
-        print("Result: {}\n{}".format(response.code, payload))
-        return payload
-
+        jpayload = json.loads(response.payload.decode(UTF8))
+        print("Result: {}\n{}".format(response.code, jpayload))
+        plot_octave(jpayload)
 
 @asyncio.coroutine
 def put_impl(url='', payload=""):
@@ -57,14 +111,8 @@ def put_impl(url='', payload=""):
     else:
         print("Result: {}\n{}".format(response.code, response.payload.decode(UTF8)))
 
-
-def incoming_observation(response):
-    sys.stdout.buffer.write(b'\f')
-    sys.stdout.buffer.write(response.payload)
-    sys.stdout.buffer.flush()
-
 @asyncio.coroutine
-def observe_impl(url=''):
+def observe_impl(name, url=''):
     context = yield from Context.create_client_context()
 
     request = Message(code=GET)
@@ -85,8 +133,9 @@ def observe_impl(url=''):
         sys.exit(1)
 
     if response_data.code.is_successful():
-        sys.stdout.buffer.write(response_data.payload.decode(UTF8))
-        sys.stdout.buffer.flush()
+        jpayload = json.loads(response_data.payload.decode(UTF8))
+        print("Result: {}\n{}".format(response_data.code, jpayload))
+        plot_octave(jpayload)
     else:
         print(response_data.code, file=sys.stderr)
         if response_data.payload:
@@ -265,12 +314,12 @@ class Commands():
         if code == 'GET':
             if payload.startswith('-o'):
                 if resource['active'] is True:
-                    yield from observe_impl(url)
+                    yield from observe_impl(name, url)
                 else:
-                    yield from get_impl(url)
+                    yield from get_impl(name, url)
                     print("Warning: resource is not observable")
             else:
-                yield from get_impl(url)
+                yield from get_impl(name, url)
         elif code == 'PUT':
             yield from put_impl(url, payload)
         else:
@@ -280,15 +329,17 @@ class Commands():
 def main():
     global server_IP
     global resources
+    global data_file
 
     # default resources
     resources = {'hello': {'url': 'hello'},
                  'time': {'url': 'time'}}
 
     # FIXME: resource info is better acquired from server, provided server's IP
-    with open('config.json') as data_file:
-        data = json.load(data_file)
+    with open('config.json') as config_file:
+        data = json.load(config_file)
         server_IP = data['server']['IP']
+        data_file = data['client']['datafile']
         # re-format each sensor entry for client to use
         for r in data['sensors']:
             resources[r['name']] = {i: r[i] for i in r if i != 'name'}
@@ -299,6 +350,11 @@ def main():
                 resources[r]['active'] = False
 
     #print("{}".format(resources))
+    '''
+    # Setup octave for data visualization and storage
+    octave.addpath('./')
+    octave.database_init(datafile)
+    '''
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(client_console())
