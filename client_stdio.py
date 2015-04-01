@@ -55,7 +55,7 @@ def plot_octave(jpayload):
             elif jpayload['name'] == 'joystick':
                 data += [float('NaN'), float('NaN'), float('NaN'),
                          float('NaN'), float('NaN'), float('NaN'),
-                         float('updown'), float('leftright')]
+                         float(jvalue['updown']), float(jvalue['leftright'])]
             else:
                 print("Warning: Unknown data\n")
                 data += [float('NaN'), float('NaN'), float('NaN'),
@@ -364,7 +364,6 @@ def main():
     # Setup octave for data visualization and storage
     print("Initializing Octave database and visualizer")
     octave.addpath('./')
-    print("File name = {}".format(data_file))
     octave.test_init(data_file)
 
     loop = asyncio.get_event_loop()
