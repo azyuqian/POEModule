@@ -1,39 +1,14 @@
 import time
 import json
-<<<<<<< Updated upstream
-=======
-from coapthon2.resources.resource import Resource
-from sensors.mcp3008 import MCP3008
-from sensors.temp_sensor import WaitingSht15
-from sensors.pir import MotionSensor
->>>>>>> Stashed changes
-
 import asyncio
 
 import aiocoap.resource as resource
 import aiocoap
 
-<<<<<<< Updated upstream
 from resources_def import PayloadTable
 from resources_def import UTF8 as UTF8
 from resources_def import PayloadWrapper
 import resources_def as r_defs
-=======
-
-class Motion(Resource):
-	motion = MotionSensor()
-	
-	def __init__(self, name="MotionResource"):
-        super(Motion, self).__init__(name, visible=True, observable=True, allow_children=False)
-	
-	def render_GET(self, request, query=None):
-        Motion_detectd = self.motion.ReadMotion()
-        return json.dumps({"Motion_detected = ", Motion_detectd})
-		
-
-class Acceleration(Resource):
-    sensor = MCP3008()
->>>>>>> Stashed changes
 
 import platform
 if platform.machine() == 'x86_64':
