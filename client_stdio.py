@@ -37,6 +37,7 @@ def plot_octave(jpayload):
 
         try:
             jvalue = json.loads(jpayload['data'])
+            #print("{}".format(jvalue))
             if jpayload['name'] == 'acceleration':
                 data += [float(jvalue['x']), float(jvalue['y']), float(jvalue['z']),
                          float('NaN'), float('NaN'), float('NaN'), float('NaN'), float('NaN')]

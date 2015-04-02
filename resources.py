@@ -298,9 +298,9 @@ class Acceleration(Adc8Channel):
     def render_GET(self, request):
         x, y, z = self.mcp3008.acceleration()
         # Wrap data with sensor related information and timestamps
-        json_acc = json.dumps([{'x': format(x, self.fp_format)},    \
-                               {'y': format(y, self.fp_format)},    \
-                               {'z': format(z, self.fp_format)}], sort_keys=True)
+        json_acc = json.dumps({'x': format(x, self.fp_format),
+                               'y': format(y, self.fp_format),
+                               'z': format(z, self.fp_format)}, sort_keys=True)
         payload = PayloadWrapper.wrap(json_acc, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
@@ -359,9 +359,8 @@ class Joystick(Adc8Channel):
     def render_GET(self, request):
         leftright, updown = self.mcp3008.joystick()
         # Wrap data with sensor related information and timestamps
-        json_acc = json.dumps([{'leftright': format(leftright, self.fp_format)},
-                               {'updown': format(updown, self.fp_format)}],
-                              sort_keys=True)
+        json_acc = json.dumps({'leftright': format(leftright, self.fp_format),
+                               'updown': format(updown, self.fp_format)}, sort_keys=True)
         payload = PayloadWrapper.wrap(json_acc, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
