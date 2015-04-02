@@ -269,13 +269,18 @@ class Alert(resource.ObservableResource):
         return response
 
 
-class Acceleration(resource.ObservableResource):
+class Adc8Channel(resource.ObservableResource):
+    # ADC driver must be a class variable, because possibly >1 instances may
+    #   be initialized as child of Adc8Channel class
+    mcp3008 = MCP3008()
+
+    def __init__(self):
+        super(Adc8Channel, self).__init__()
+
+
+class Acceleration(Adc8Channel):
     def __init__(self):
         super(Acceleration, self).__init__()
-
-        # It is safe to construct sensor driver as instance variable (i.e. faster
-        #   access), since as a resource Acceleration will only have one instance
-        self.sensor = MCP3008()
 
         self.observe_period = 1
         self.fp_format = r_defs.DEFAULT_FP_FORMAT
@@ -291,7 +296,7 @@ class Acceleration(resource.ObservableResource):
 
     @asyncio.coroutine
     def render_GET(self, request):
-        x, y, z = self.sensor.acceleration()
+        x, y, z = self.mcp3008.acceleration()
         # Wrap data with sensor related information and timestamps
         json_acc = json.dumps([{'x': format(x, self.fp_format)},    \
                                {'y': format(y, self.fp_format)},    \
@@ -310,6 +315,67 @@ class Acceleration(resource.ObservableResource):
         # FIXME: Various error messages for different PUT methods
         err_msg = ("argument is not correctly formatted. Follow 'period [sec]' to " \
                    "update period to observe 'acceleration' resource\n\n").encode(UTF8)
+        err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
+        err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+
+        args = request.payload.decode(UTF8).split()
+        if len(args) != 2:
+            return err_response
+
+        # Observe with period = 0 is not allowed
+        if (args[0] == 'period') and (args[1].isdigit() and args[1] != '0'):
+            self.observe_period = int(args[1])
+            # PUT new value to non-data field requires updating payload wrapper content
+            self.payload.set_sample_rate(self.observe_period)
+        elif args[0] == 'decimal':
+            self.fp_format = '.{}f'.format(int(args[1]))
+        else:
+            return err_response
+
+        payload = ("PUT %s=%s to resource" % (args[0], args[1])).encode(UTF8)
+        response = aiocoap.Message(code=aiocoap.CHANGED, payload=payload)
+        response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+
+        return response
+
+
+class Joystick(Adc8Channel):
+    def __init__(self):
+        super(Joystick, self).__init__()
+
+        self.observe_period = 1
+        self.fp_format = r_defs.DEFAULT_FP_FORMAT
+
+        self.payload = PayloadTable('joystick', True, self.observe_period)
+
+        # start observing resource
+        self.notify()
+
+    def notify(self):
+        self.updated_state()
+        asyncio.get_event_loop().call_later(self.observe_period, self.notify)
+
+    @asyncio.coroutine
+    def render_GET(self, request):
+        leftright, updown = self.mcp3008.joystick()
+        # Wrap data with sensor related information and timestamps
+        json_acc = json.dumps([{'leftright': format(leftright, self.fp_format)},
+                               {'updown': format(updown, self.fp_format)}],
+                              sort_keys=True)
+        payload = PayloadWrapper.wrap(json_acc, self.payload)
+
+        response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
+        response.opt.content_format = r_defs.JSON_FORMAT_CODE
+
+        return response
+
+    @asyncio.coroutine
+    def render_PUT(self, request):
+        #print("PUT %s to resource" % request.payload)
+        # FIXME: This should probably be formatted with corresponding error code
+        # FIXME: Various error messages for different PUT methods
+        err_msg = ("argument is not correctly formatted. Follow 'period [sec]' to " \
+                   "update period to observe 'joystick' resource\n\n").encode(UTF8)
         err_response = aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=err_msg)
         err_response.opt.content_format = r_defs.TEXT_PLAIN_CODE
 
@@ -544,5 +610,6 @@ IMPLEMENTED_RESOURCES = {'hello': HelloWorld,
                          'time': LocalTime,
                          'alert': Alert,
                          'acceleration': Acceleration,
+                         'joystick': Joystick,
                          'temperature': Temperature,
                          'humidity': Humidity}

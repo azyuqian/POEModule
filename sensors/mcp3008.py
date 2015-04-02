@@ -33,6 +33,10 @@ if platform.machine() != 'x86_64':
         AXIS_X = 0
         AXIS_Y = 1
         AXIS_Z = 2
+        # Joystick definitions
+        JOYSTICK_LR_CH = MCP3008_CH3
+        JOYSTICK_UD_CH = MCP3008_CH4
+
         # Digital data received is in range 0~1023:
         # Reference point zero acceleration on x, y, z axis,
         #   number below reference point represents negative acceleration
@@ -68,15 +72,25 @@ if platform.machine() != 'x86_64':
             z = self._convert_raw_to_g(self._read_channel_raw(self.ACC_Z_CH), self.AXIS_Z)
             return x, y, z
 
+        def joystick(self):
+            leftright = self._read_channel_raw(self.JOYSTICK_LR_CH)
+            updown = self._read_channel_raw(self.JOYSTICK_UD_CH)
+            return leftright, updown
+
 
 class MCP3008Mock():
     adc = [0xff, 0xff, 0xff]
     x = 1
     y = 1
     z = 1
+    leftright = 555
+    updown = 333
 
     def read_channel_raw(self, channel):
         return ((self.adc[1] & 0x03) << 8) + self.adc[2]
 
     def acceleration(self):
         return self.x, self.y, self.z
+
+    def joystick(self):
+        return self.leftright, self.updown

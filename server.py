@@ -50,6 +50,8 @@ def main():
             root.add_resource(tuple(sensor['url'].split('/')), r.Temperature())
         elif sensor['name'] == 'humidity':
             root.add_resource(tuple(sensor['url'].split('/')), r.Humidity())
+        elif sensor['name'] == 'joystick':
+            root.add_resource(tuple(sensor['url'].split('/')), r.Joystick())
         # For unknown sensors, use template resource
         else:
             root.add_resource(tuple(sensor['url'].split('/')),
