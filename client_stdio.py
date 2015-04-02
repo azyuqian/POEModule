@@ -203,7 +203,7 @@ def client_console():
 class Commands():
     @staticmethod
     def do_help(command=None):
-        """ Implementation of help command
+        """ print help menu
 
         If no command is given, list all available commands;
         otherwise, show __doc__ of given command.
@@ -226,9 +226,12 @@ class Commands():
 
     @staticmethod
     def do_add(name, *args):
-        """ Implementation of add command for POST new resource
+        """ add new resource to server
+
         Syntax: >>>add [name] -c [ADC_channel] (-u [url]) (-l [min] -m [max])
-                        (-o) (-f [observe_frequency])
+                        (-o) (-f [observe_frequency]) (-h)
+        -h --help   detailed help page of arguments
+
         Example: >>>add new_r -c0 -u myR/r1 -l0 -m10 -o -f5
 
         :param name: name of the resource
@@ -305,6 +308,7 @@ class Commands():
     @staticmethod
     def do_resource(name, code='GET', *args):
         """ General implementation of resource command for GET/PUT
+
         Syntax: >>>[resource] [code] ([-o]) ([payload])
         resource: full resource list can be acquired by help command
         code: GET/PUT
