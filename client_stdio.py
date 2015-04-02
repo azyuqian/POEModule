@@ -56,7 +56,7 @@ def plot_octave(jpayload):
             elif jpayload['name'] == 'joystick':
                 data += [float('NaN'), float('NaN'), float('NaN'),
                          float('NaN'), float('NaN'), float('NaN'),
-                         float(jvalue['updown']), float(jvalue['leftright'])]
+                         float(jvalue['leftright']), float(jvalue['updown'])]
             else:
                 print("Warning: Unknown data\n")
                 data += [float('NaN'), float('NaN'), float('NaN'),
