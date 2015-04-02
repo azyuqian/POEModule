@@ -14,9 +14,11 @@ import platform
 if platform.machine() == 'x86_64':
     from sensors.mcp3008 import MCP3008Mock as MCP3008
     from sensors.temp_sensor import WaitingSht15Mock as WaitingSht15
+    from sensors.pir import PirMock as Pir
 else:
     from sensors.mcp3008 import MCP3008
     from sensors.temp_sensor import WaitingSht15
+    from sensors.pir import Pir
 
 # FIXME: Add logging
 
@@ -359,9 +361,9 @@ class Joystick(Adc8Channel):
     def render_GET(self, request):
         leftright, updown = self.mcp3008.joystick()
         # Wrap data with sensor related information and timestamps
-        json_acc = json.dumps({'leftright': format(leftright, self.fp_format),
-                               'updown': format(updown, self.fp_format)}, sort_keys=True)
-        payload = PayloadWrapper.wrap(json_acc, self.payload)
+        jdata = json.dumps({'leftright': format(leftright, self.fp_format),
+                            'updown': format(updown, self.fp_format)}, sort_keys=True)
+        payload = PayloadWrapper.wrap(jdata, self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
         response.opt.content_format = r_defs.JSON_FORMAT_CODE
@@ -532,6 +534,37 @@ class Humidity(HygroThermo):
         return response
 
 
+class Motion(resource.ObservableResource):
+    def __init__(self):
+        super(Motion, self).__init__()
+
+        self.driver = Pir()
+
+        self.observe_period = 1
+        self.fp_format = r_defs.DEFAULT_FP_FORMAT
+
+        self.payload = PayloadTable('motion', True, self.observe_period)
+
+        # start observing resource
+        self.notify()
+
+    def notify(self):
+        self.updated_state()
+        asyncio.get_event_loop().call_later(self.observe_period, self.notify)
+
+    @asyncio.coroutine
+    def render_GET(self, request):
+        has_motion = self.driver.has_motion()
+        # Wrap data with sensor related information and timestamps
+        jmotion = json.dumps({'motion': str(has_motion)})
+        payload = PayloadWrapper.wrap(jmotion, self.payload)
+
+        response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
+        response.opt.content_format = r_defs.JSON_FORMAT_CODE
+
+        return response
+
+
 class ResourceTemplate(resource.ObservableResource):
     def __init__(self, name=None, active=False, period=3, min=0, max=1023, channel=0):
         super(ResourceTemplate, self).__init__()
@@ -611,4 +644,5 @@ IMPLEMENTED_RESOURCES = {'hello': HelloWorld,
                          'acceleration': Acceleration,
                          'joystick': Joystick,
                          'temperature': Temperature,
-                         'humidity': Humidity}
+                         'humidity': Humidity,
+                         'motion': Motion}

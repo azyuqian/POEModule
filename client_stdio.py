@@ -6,7 +6,7 @@ import socket
 
 from aiocoap import *
 from defs import *
-from oct2py import octave
+#from oct2py import octave
 
 logging.basicConfig(level=logging.INFO)
 # FIXME: Add logging function to replace "print" in the code
@@ -368,7 +368,7 @@ def main():
 
     # Setup octave for data visualization and storage
     print("Initializing Octave database and visualizer")
-    octave.addpath('./')
+    #octave.addpath('./')
     #octave.test_init(data_file)
 
     loop = asyncio.get_event_loop()
