@@ -1,4 +1,5 @@
 import sys
+import time
 import logging
 import json
 import asyncio
@@ -6,7 +7,7 @@ import socket
 
 from aiocoap import *
 from defs import *
-#from oct2py import octave
+from oct2py import octave
 
 logging.basicConfig(level=logging.INFO)
 # FIXME: Add logging function to replace "print" in the code
@@ -20,7 +21,7 @@ def plot_octave(jpayload):
         octave.update_plot('data.txt', [3, 3, 3, None, None, 1111, 11, 11, 11, 11, 11])
         octave.save_database('data.txt')
     '''
-    if jpayload['name'] in demo_resources:
+    if jpayload['name'] == 'joystick':
         time = []
         data = []
 
@@ -34,7 +35,7 @@ def plot_octave(jpayload):
         except ValueError as e:
             print("Wrong time format: {}".format(e))
             time = [0, 0, 0, 0, 0, 0.0]
-
+        '''
         try:
             jvalue = json.loads(jpayload['data'])
             #print("{}".format(jvalue))
@@ -64,10 +65,13 @@ def plot_octave(jpayload):
                          float('NaN'), float('NaN')]
         except Exception as e:
             raise Exception("Failed to parse data: {}".format(e))
+
+        '''
+        data += [float(jvalue['leftright']), float(jvalue['updown'])]
         data += time
 
         print("data to plot: {}".format(data))
-        #octave.test_update(data_file, data)
+        octave.demo_update(data_file, data)
 
 
 def incoming_observation(response):
@@ -368,8 +372,9 @@ def main():
 
     # Setup octave for data visualization and storage
     print("Initializing Octave database and visualizer")
-    #octave.addpath('./')
-    #octave.test_init(data_file)
+    octave.addpath('./')
+    octave.demo_init(data_file)
+    time.sleep(0.5)
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(client_console())

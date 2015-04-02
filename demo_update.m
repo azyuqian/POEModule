@@ -23,9 +23,12 @@ function [ PARA ] = demo_update( fName, newData )
     time_inst = newData(end-2)*SECPERHOUR+newData(end-1)*SECPERMIN+newData(end);
     
     %n_time_para = 6;
-    plot_n_row = 2;
-    plot_n_col = 2;
-    
+    plot_n_row = 1;
+    plot_n_col = 1;
+
+    Xmin = 260; Xmax = 763; %xcentre = 516;
+    Ymin = 253; Ymax = 769; %ycentre = 510;
+
     newData(~(newData<9999)) = NaN;
     
     [~,name,ext] = fileparts(fName);
@@ -61,43 +64,20 @@ function [ PARA ] = demo_update( fName, newData )
         
         PARA(LOGICAL_TEMP) = PARA_UPDATE;
 
-        for i = 1:3
-            subplot(plot_n_row,plot_n_col,i);
-            
-            if(~isempty(PARA{i}))
-                x = PARA{i}(:,end); y = PARA{i}(:,1); plot(x,y); grid; 
-                xlabel('Time Elapsed (s)'); set(gca,'FontSize',12);
-                if(x(end)>x(1))
-                    xlim([x(1),x(end)]);
-                elseif(x(end)<x(1))
-                    error('Error in time calculation. (x(end) <= x(1))');
-                end
-            end
-        end
-
-        subplot(plot_n_row,plot_n_col,1); title('Acceleration Profile in x');
-        ylabel('Acceleration in x (ms^{-2})'); 
-
-        subplot(plot_n_row,plot_n_col,2); title('Acceleration Profile in y');
-        ylabel('Acceleration in y (ms^{-2})');
-
-        subplot(plot_n_row,plot_n_col,3); title('Acceleration Profile in z');
-        ylabel('Acceleration in z (ms^{-2})');
-
-        subplot(plot_n_row,plot_n_col,4);
+        subplot(plot_n_row,plot_n_col,1);
         if(~isempty(PARA{7}))
             x = PARA{7}(end,1); y = PARA{8}(end,1); plot(x,y); grid;
             xlabel('Position in x'); ylabel('Position in y');
             title('Joystick Position'); set(gca,'FontSize',12);
             axis([Xmin,Xmax,Ymin,Ymax]); 
-            ax = gca;
-            ax.XTickLabel = {'Leftmost','Centre','Rightmost'};
-            ax.YTickLabel = {'Uppermost','Centre','Lowermost'};
+            %ax = gca;
+            %ax.XTickLabel = {'Leftmost','Centre','Rightmost'};
+            %ax.YTickLabel = {'Uppermost','Centre','Lowermost'};
         end
 %         subplot(plot_n_row,plot_n_col,5); title('Humidity Profile');
 %         ylabel('Relative Humidity (%)');       ylim([hum_min,hum_max]);
         
-        save(fNameToSave,'PARA','-v6');    
+        %save(fNameToSave,'PARA','-v6');
     end
         
 end
