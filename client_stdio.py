@@ -35,10 +35,11 @@ def plot_octave(jpayload):
         except ValueError as e:
             print("Wrong time format: {}".format(e))
             time = [0, 0, 0, 0, 0, 0.0]
-        '''
+
         try:
             jvalue = json.loads(jpayload['data'])
             #print("{}".format(jvalue))
+            '''
             if jpayload['name'] == 'acceleration':
                 data += [float(jvalue['x']), float(jvalue['y']), float(jvalue['z']),
                          float('NaN'), float('NaN'), float('NaN'), float('NaN'), float('NaN')]
@@ -63,11 +64,13 @@ def plot_octave(jpayload):
                 data += [float('NaN'), float('NaN'), float('NaN'),
                          float('NaN'), float('NaN'), float('NaN'),
                          float('NaN'), float('NaN')]
+            '''
         except Exception as e:
             raise Exception("Failed to parse data: {}".format(e))
 
-        '''
-        data += [float(jvalue['leftright']), float(jvalue['updown'])]
+        data += [float('NaN'), float('NaN'), float('NaN'),
+                 float('NaN'), float('NaN'), float('NaN'),
+                 float(jvalue['leftright']), float(jvalue['updown'])]
         data += time
 
         print("data to plot: {}".format(data))

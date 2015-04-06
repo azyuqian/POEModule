@@ -56,7 +56,7 @@ function [ PARA ] = demo_init( fName )
 
         subplot(plot_n_row,plot_n_col,1);
         if(~isempty(PARA{7}))
-            x = PARA{7}(end,1); y = PARA{8}(end,1); plot(x,y); grid;
+            x = PARA{7}(end,1); y = PARA{8}(end,1); plot(x,y,'r.','markersize', 40); grid;
             xlabel('Position in x'); ylabel('Position in y');
             title('Joystick Position'); set(gca,'FontSize',12);
             axis([Xmin,Xmax,Ymin,Ymax]); 

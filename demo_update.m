@@ -46,7 +46,7 @@ function [ PARA ] = demo_update( fName, newData )
     
     if(isempty(data.(check_empty{1})))
         save(fName,'newData','-ascii');
-        test_init(fName);
+        demo_init(fName);
     else
         name_para = fieldnames(data);
         PARA = data.(name_para{1});
@@ -66,7 +66,7 @@ function [ PARA ] = demo_update( fName, newData )
 
         subplot(plot_n_row,plot_n_col,1);
         if(~isempty(PARA{7}))
-            x = PARA{7}(end,1); y = PARA{8}(end,1); plot(x,y); grid;
+            x = PARA{7}(end,1); y = PARA{8}(end,1); plot(x,y,'r.','markersize', 40); grid;
             xlabel('Position in x'); ylabel('Position in y');
             title('Joystick Position'); set(gca,'FontSize',12);
             axis([Xmin,Xmax,Ymin,Ymax]); 
@@ -77,7 +77,7 @@ function [ PARA ] = demo_update( fName, newData )
 %         subplot(plot_n_row,plot_n_col,5); title('Humidity Profile');
 %         ylabel('Relative Humidity (%)');       ylim([hum_min,hum_max]);
         
-        %save(fNameToSave,'PARA','-v6');
+        save(fNameToSave,'PARA','-v6');
     end
         
 end
