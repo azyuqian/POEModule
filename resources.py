@@ -135,7 +135,8 @@ class HelloWorld(resource.Resource):
 
     @asyncio.coroutine
     def render_GET(self, request):
-        payload = PayloadWrapper.wrap(self.content, self.payload)
+        payload = PayloadWrapper.wrap(json.dumps({'hello': self.content}),
+                                      self.payload)
 
         response = aiocoap.Message(code=aiocoap.CONTENT, payload=payload)
         response.opt.content_format = r_defs.JSON_FORMAT_CODE
