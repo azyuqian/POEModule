@@ -5,7 +5,8 @@
   },
   "client": {
     "name": "myLaptop",
-    "datafile": "data.txt"
+    "datafile": "data.txt",
+    "demo": true
   },
   "sensors": [
     {

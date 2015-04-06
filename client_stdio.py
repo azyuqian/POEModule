@@ -7,7 +7,23 @@ import socket
 
 from aiocoap import *
 from defs import *
-from oct2py import octave
+
+# Default client configuration
+server_IP = 'localhost'
+# default resources
+resources = {'hello': {'url': 'hello'},
+             'time': {'url': 'time'}}
+data_file = 'data.txt'
+run_demo = False
+
+try:
+    from oct2py import octave
+except Exception as e:
+    print("{}: Not running demo files".format(e))
+    run_demo = False
+else:
+    run_demo = True
+
 
 logging.basicConfig(level=logging.INFO)
 # FIXME: Add logging function to replace "print" in the code
@@ -21,20 +37,10 @@ def plot_octave(jpayload):
         octave.update_plot('data.txt', [3, 3, 3, None, None, 1111, 11, 11, 11, 11, 11])
         octave.save_database('data.txt')
     '''
-    if jpayload['name'] == 'joystick':
+    if run_demo is True and jpayload['name'] in resources:
+        print("payload is {}".format(jpayload))
         time = []
         data = []
-
-        # Parse payload data
-        import re
-        time_str = re.split('[- :]', jpayload['time'])
-        try:
-            for i in range(5):
-                time += [int(time_str[i])]
-            time += [float(time_str[5])]
-        except ValueError as e:
-            print("Wrong time format: {}".format(e))
-            time = [0, 0, 0, 0, 0, 0.0]
 
         try:
             jvalue = json.loads(jpayload['data'])
@@ -65,15 +71,32 @@ def plot_octave(jpayload):
                          float('NaN'), float('NaN'), float('NaN'),
                          float('NaN'), float('NaN')]
             '''
+            if jpayload['name'] == 'joystick':
+                data += [float('NaN'), float('NaN'), float('NaN'),
+                         float('NaN'), float('NaN'), float('NaN'),
+                         float(jvalue['leftright']), float(jvalue['updown'])]
+            else:
+                print("Warning: Unknown data\n")
+                data += [float('NaN'), float('NaN'), float('NaN'),
+                         float('NaN'), float('NaN'), float('NaN'),
+                         float('NaN'), float('NaN')]
         except Exception as e:
-            raise Exception("Failed to parse data: {}".format(e))
+            raise Exception("Failed to parse data for demo: {}".format(e))
 
-        data += [float('NaN'), float('NaN'), float('NaN'),
-                 float('NaN'), float('NaN'), float('NaN'),
-                 float(jvalue['leftright']), float(jvalue['updown'])]
+        # Parse payload data
+        import re
+        time_str = re.split('[- :]', jpayload['time'])
+        try:
+            for i in range(5):
+                time += [int(time_str[i])]
+            time += [float(time_str[5])]
+        except Exception as e:
+            time = [0, 0, 0, 0, 0, 0.0]
+            print("Failed to parse time: {}, using:".format(e, time))
         data += time
 
         print("data to plot: {}".format(data))
+
         octave.demo_update(data_file, data)
 
 
@@ -352,32 +375,41 @@ def main():
     global server_IP
     global resources
     global data_file
+    global run_demo
 
-    # default resources
-    resources = {'hello': {'url': 'hello'},
-                 'time': {'url': 'time'}}
+    try:
+        # FIXME: resource info is better acquired from server, provided server's IP
+        with open('config.json') as config_file:
+            data = json.load(config_file)
+            server_IP = data['server']['IP']
+            data_file = data['client']['datafile']
+            demo_config = data['client']['demo']
+            # re-format each sensor entry for client to use
+            for r in data['sensors']:
+                resources[r['name']] = {i: r[i] for i in r if i != 'name'}
 
-    # FIXME: resource info is better acquired from server, provided server's IP
-    with open('config.json') as config_file:
-        data = json.load(config_file)
-        server_IP = data['server']['IP']
-        data_file = data['client']['datafile']
-        # re-format each sensor entry for client to use
-        for r in data['sensors']:
-            resources[r['name']] = {i: r[i] for i in r if i != 'name'}
-
-        # add default activeness as "false" - i.e. not observable
-        for r in resources:
-            if 'active' not in resources[r]:
-                resources[r]['active'] = False
+            # add default activeness as "false" - i.e. not observable
+            for r in resources:
+                if 'active' not in resources[r]:
+                    resources[r]['active'] = False
+    except Exception as e:
+        print("Failed to parse config file: {}".format(e))
+        print("Exiting client!!!")
+        return
 
     #print("{}".format(resources))
 
-    # Setup octave for data visualization and storage
-    print("Initializing Octave database and visualizer")
-    octave.addpath('./')
-    octave.demo_init(data_file)
-    time.sleep(0.5)
+    if run_demo is True and demo_config is True:
+        # Setup octave for data visualization and storage
+        print("Initializing Octave database and visualizer")
+        octave.addpath('./')
+        octave.demo_init(data_file)
+        # Wait for Octave initialization to complete
+        time.sleep(0.5)
+    else:
+        # Turn off demo if oct2py module not present or config to not demo
+        print("Disabling Octave script")
+        run_demo = False
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(client_console())
