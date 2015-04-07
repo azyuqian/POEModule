@@ -253,8 +253,8 @@ def client_console():
 
         else:
             try:
-                # do_help is not an asyncio coroutine
-                if method.__name__ == 'do_help':
+                # do_help and do_IP are not asyncio coroutine
+                if method.__name__ == 'do_help' or method.__name__ == 'do_IP':
                     method(*args)
                 else:
                     yield from method(*args)
@@ -282,6 +282,29 @@ class Commands():
             print("Valid commands: " + ", ".join(commands))
             print("Valid resources: " + ", ".join(resources))
             print("\n'help [command]' or 'help resource' for more details\n")
+
+    @staticmethod
+    def do_ip(ip=None):
+        """ read or change server IP
+            default IP is given by config.json upon client initialization
+
+        If no parameter is given, return server IP;
+        otherwise, set server IP to given value
+        Example: >>>IP 192.168.2.20
+        Example: >>>IP localhost
+        Example: >>>IP
+
+        :param ip: server IP to set
+        :type ip: str
+        """
+        global server_IP
+
+        if ip is None:
+            print("Server IP: {}".format(server_IP))
+        else:
+            print("Server IP was {}".format(server_IP))
+            server_IP = ip
+            print("Server IP is set to {}".format(IP))
 
     @staticmethod
     @asyncio.coroutine
