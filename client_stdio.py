@@ -556,10 +556,16 @@ def main():
         print("Disabling Octave script...")
         run_demo = False
 
-    loop = asyncio.get_event_loop()
-    # Keep a global record of the event loop for client
-    client_event_loop = loop
-    loop.run_until_complete(client_console())
+    try:
+        loop = asyncio.get_event_loop()
+        # Keep a global record of the event loop for client
+        client_event_loop = loop
+        loop.run_until_complete(client_console())
+    except Exception as e:
+        print("{}".format(e))
+    finally:
+        loop.close()
+        Commands.do_exit()
 
 if __name__ == '__main__':
     main()
