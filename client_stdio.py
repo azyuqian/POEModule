@@ -4,17 +4,26 @@ import logging
 import json
 import asyncio
 import socket
+import functools
+import signal
+
 
 from aiocoap import *
 from defs import *
 
-# Default client configuration
+# Default client configuration:
+# IP is (local) 127.0.0.1
 server_IP = 'localhost'
-# default resources
+# resources independent from hardware implementation
 resources = {'hello': {'url': 'hello'},
              'time': {'url': 'time'}}
+# Octave plotting data file
 data_file = 'data.txt'
+# flag to enable Octave plotting
 run_demo = False
+# asyncio event loop for client
+# Keep a record so that it can be switched back after observation
+client_event_loop = asyncio.get_event_loop()
 
 try:
     from oct2py import octave
@@ -38,7 +47,7 @@ def plot_octave(jpayload):
         octave.save_database('data.txt')
     '''
     if run_demo is True and jpayload['name'] in resources:
-        print("payload is {}".format(jpayload))
+        #print("payload is {}".format(jpayload))
         time = []
         data = []
 
@@ -120,6 +129,19 @@ def incoming_data(response):
             run_demo = False
 
 
+def end_observation(loop):
+    # FIXME: method should actually end observation on server.
+    #       Now, it only deals with client side
+
+    print("Observation ended by user interrupt...")
+    # Terminate observation event loop
+    loop.close()
+    print("Observation loop ended...")
+
+    # Restore event loop
+    asyncio.set_event_loop(client_event_loop)
+    print("Switched back to client console...")
+
 @asyncio.coroutine
 def post_impl(jargs):
     context = yield from Context.create_client_context()
@@ -186,25 +208,24 @@ def observe_impl(url='', payload=""):
 
     if response_data.payload:
         incoming_data(response_data)
-
     if not response_data.code.is_successful():
-        raise RuntimeError("Observation failed")
+        raise RuntimeError("Observation failed!")
 
     exit_reason = yield from observation_is_over
-    print(exit_reason, file=sys.stderr)
+    print("Observation exits due to {}".format(exit_reason))
 
-@asyncio.coroutine
+
 def client_console():
     # First, print general info and help menu on console when client starts
     print("Connecting to server {}...\n".format(server_IP))
     print("Probing available resources...")
     for r in resources:
-        # test GET each resource
+        # Test GET for each known resource
         yield from Commands.do_resource(r, 'GET')
         print("Success! Resource {} is available at path /{}\n".format(r, resources[r]['url']))
     print("Done probing...")
     print("Initializing command prompt...\n")
-    yield from Commands.do_help()
+    Commands.do_help()
 
     # Start acquiring user input
     while True:
@@ -232,7 +253,11 @@ def client_console():
 
         else:
             try:
-                yield from method(*args)
+                # do_help is not an asyncio coroutine
+                if method.__name__ == 'do_help':
+                    method(*args)
+                else:
+                    yield from method(*args)
             except Exception as e:
                 print("Error: {}".format(e))
 
@@ -258,10 +283,8 @@ class Commands():
             print("Valid resources: " + ", ".join(resources))
             print("\n'help [command]' or 'help resource' for more details\n")
 
-        # Empty yield to avoid NoneType error
-        yield
-
     @staticmethod
+    @asyncio.coroutine
     def do_add(name, *args):
         """ add new resource to server
 
@@ -308,7 +331,7 @@ class Commands():
         if options.url:
             url = options.url
         else:
-            print("Warning: use resource name {} as url")
+            print("Warning: use resource name ({}) as url".format(name))
 
         if options.min and options.max:
             try:
@@ -347,6 +370,7 @@ class Commands():
             raise RuntimeError("Failed to complete CoAP request: {}".format(e))
 
     @staticmethod
+    @asyncio.coroutine
     def do_resource(name, code='GET', *args):
         """ General implementation of resource command for GET/PUT
 
@@ -374,14 +398,36 @@ class Commands():
             if code == 'GET':
                 if payload.startswith('-o'):
                     if resource['active'] is True:
-                        yield from observe_impl(url)
-                    else:
+                        # Create new event loop for observation
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+
+                        try:
+                            # Set keyboard interrupt as method to end observation
+                            for signame in ('SIGINT', 'SIGTERM'):
+                                loop.add_signal_handler(getattr(signal, signame),
+                                                        functools.partial(end_observation, loop))
+
+                            print("Observation running forever...")
+                            print("Press Ctrl + c to end observation")
+
+                            loop.run_until_complete(observe_impl(url))
+                        finally:
+                            # In case of exceptions, must terminate observation loop and
+                            #   switch back to client event loop
+                            loop.close()
+                            asyncio.set_event_loop(client_event_loop)
+
+                    else:   # Resource is not configured to observable
                         yield from get_impl(url)
                         print("Warning: resource is not observable")
+
                 else:
                     yield from get_impl(url)
+
             elif code == 'PUT':
                 yield from put_impl(url, payload)
+
             else:
                 raise ValueError("invalid request code")
         except Exception as e:
@@ -393,6 +439,7 @@ def main():
     global resources
     global data_file
     global run_demo
+    global client_event_loop
 
     try:
         # FIXME: resource info is better acquired from server, provided server's IP
@@ -434,6 +481,8 @@ def main():
         run_demo = False
 
     loop = asyncio.get_event_loop()
+    # Keep a global record of the event loop for client
+    client_event_loop = loop
     loop.run_until_complete(client_console())
 
 if __name__ == '__main__':
