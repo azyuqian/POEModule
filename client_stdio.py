@@ -76,12 +76,10 @@ def plot_octave(jpayload):
                          float('NaN'), float('NaN'), float('NaN'),
                          float(jvalue['leftright']), float(jvalue['updown'])]
             else:
-                print("Warning: Unknown data\n")
-                data += [float('NaN'), float('NaN'), float('NaN'),
-                         float('NaN'), float('NaN'), float('NaN'),
-                         float('NaN'), float('NaN')]
+                print("Unknown data. Skip plotting...\n")
+                return
         except Exception as e:
-            raise Exception("Failed to parse data for demo: {}".format(e))
+            raise AttributeError("Failed to parse data for demo: {}".format(e))
 
         # Parse payload data
         import re
@@ -97,13 +95,29 @@ def plot_octave(jpayload):
 
         print("data to plot: {}".format(data))
 
-        octave.demo_update(data_file, data)
+        try:
+            octave.demo_update(data_file, data)
+        except Exception as e:
+            raise RuntimeError("Failed to plot: {}".format(e));
 
 
-def incoming_observation(response):
-    jpayload = json.loads(response.payload.decode(UTF8))
-    print("Result: {}\n{}".format(response.code, jpayload))
-    plot_octave(jpayload)
+def incoming_data(response):
+    global run_demo
+
+    payload = response.payload.decode(UTF8)
+
+    if response.opt.content_format is not JSON_FORMAT_CODE:
+        print("Result:\n{}: {}".format(response.code, payload))
+    else:
+        jpayload = json.loads(payload)
+        print("Result (JSON):\n{}: {}".format(response.code, jpayload))
+
+        try:
+            plot_octave(jpayload)
+        except Exception as e:
+            print("{}".format(e))
+            print("Disabling Octave script...")
+            run_demo = False
 
 
 @asyncio.coroutine
@@ -116,12 +130,12 @@ def post_impl(jargs):
     try:
         response = yield from context.request(request).response
     except Exception as e:
-        raise Exception("Failed to post new resource: {}".format(e))
+        raise RuntimeError("Failed to create new resource: {}".format(e))
     else:
-        print("Result: {}\n{}".format(response.code, response.payload.decode(UTF8)))
+        incoming_data(response)
 
 @asyncio.coroutine
-def get_impl(name, url=''):
+def get_impl(url='', payload=""):
     context = yield from Context.create_client_context()
 
     request = Message(code=GET)
@@ -130,11 +144,9 @@ def get_impl(name, url=''):
     try:
         response = yield from context.request(request).response
     except Exception as e:
-        raise Exception("Failed to fetch resource: {}".format(e))
+        raise RuntimeError("Failed to fetch resource: {}".format(e))
     else:
-        jpayload = json.loads(response.payload.decode(UTF8))
-        print("Result: {}\n{}".format(response.code, jpayload))
-        plot_octave(jpayload)
+        incoming_data(response)
 
 @asyncio.coroutine
 def put_impl(url='', payload=""):
@@ -148,12 +160,12 @@ def put_impl(url='', payload=""):
     try:
         response = yield from context.request(request).response
     except Exception as e:
-        print("Failed to update resource: {}".format(e))
+        raise RuntimeError("Failed to update resource: {}".format(e))
     else:
-        print("Result: {}\n{}".format(response.code, response.payload.decode(UTF8)))
+        incoming_data(response)
 
 @asyncio.coroutine
-def observe_impl(name, url=''):
+def observe_impl(url='', payload=""):
     context = yield from Context.create_client_context()
 
     request = Message(code=GET)
@@ -165,24 +177,18 @@ def observe_impl(name, url=''):
     requester = context.request(request)
 
     requester.observation.register_errback(observation_is_over.set_result)
-    requester.observation.register_callback(lambda data: incoming_observation(data))
+    requester.observation.register_callback(lambda data: incoming_data(data))
 
     try:
         response_data = yield from requester.response
     except socket.gaierror as e:
-        print("Name resolution error:", e, file=sys.stderr)
-        sys.exit(1)
+        raise NameError("Name resolution error: {}".format(e))
 
-    if response_data.code.is_successful():
-        jpayload = json.loads(response_data.payload.decode(UTF8))
-        print("Result: {}\n{}".format(response_data.code, jpayload))
-        plot_octave(jpayload)
-    else:
-        print(response_data.code, file=sys.stderr)
-        if response_data.payload:
-            print(response_data.payload.decode(UTF8), file=sys.stderr)
-            print("\n")
-        sys.exit(1)
+    if response_data.payload:
+        incoming_data(response_data)
+
+    if not response_data.code.is_successful():
+        raise RuntimeError("Observation failed")
 
     exit_reason = yield from observation_is_over
     print(exit_reason, file=sys.stderr)
@@ -205,6 +211,7 @@ def client_console():
         cmdline = input(">>>")
         cmd_parts = cmdline.split()
 
+        # Handle empaty input
         if len(cmd_parts) is 0:
             continue
 
@@ -283,12 +290,12 @@ class Commands():
 
         # channel number is not optional
         if not options.channel:
-            raise p.error("ADC Channel not found")
+            raise AttributeError("ADC Channel not found")
         else:
             try:
                 channel = int(options.channel)
             except ValueError as e:
-                raise p.error(e)
+                raise ValueError("Channel must be integer")
 
         # default value of other options
         url = name
@@ -309,7 +316,7 @@ class Commands():
                 max = int(options.max)
                 b_range = True
             except ValueError as e:
-                raise p.error(e)
+                raise ValueError("Value range must be integer")
 
         if options.observe:
             active = True
@@ -319,7 +326,7 @@ class Commands():
                 try:
                     frequency = int(options.frequency)
                 except ValueError as e:
-                    raise p.error(e)
+                    raise ValueError("Observing frequency must be integer")
 
         # add new resource to resource list
         resources[name] = {'url': url,
@@ -333,7 +340,11 @@ class Commands():
         # convert resource to payload (add name field)
         payload = resources[name]
         payload['name'] = name
-        yield from post_impl(json.dumps(payload))
+
+        try:
+            yield from post_impl(json.dumps(payload))
+        except Exception as e:
+            raise RuntimeError("Failed to complete CoAP request: {}".format(e))
 
     @staticmethod
     def do_resource(name, code='GET', *args):
@@ -352,23 +363,29 @@ class Commands():
         :type args: str
         """
         payload = " ".join(args)
-        resource = resources[name]
-        url = resource['url']
+        try:
+            resource = resources[name]
+            url = resource['url']
+        except AttributeError and IndexError as e:
+            raise AttributeError("Resource name or url not found: {}".format(e))
 
         #print("do_resource: payload={}".format(payload))
-        if code == 'GET':
-            if payload.startswith('-o'):
-                if resource['active'] is True:
-                    yield from observe_impl(name, url)
+        try:
+            if code == 'GET':
+                if payload.startswith('-o'):
+                    if resource['active'] is True:
+                        yield from observe_impl(url)
+                    else:
+                        yield from get_impl(url)
+                        print("Warning: resource is not observable")
                 else:
-                    yield from get_impl(name, url)
-                    print("Warning: resource is not observable")
+                    yield from get_impl(url)
+            elif code == 'PUT':
+                yield from put_impl(url, payload)
             else:
-                yield from get_impl(name, url)
-        elif code == 'PUT':
-            yield from put_impl(url, payload)
-        else:
-            raise AttributeError("Invalid command")
+                raise ValueError("invalid request code")
+        except Exception as e:
+            raise RuntimeError("Failed to complete CoAP request: {}".format(e))
 
 
 def main():
@@ -401,14 +418,19 @@ def main():
 
     if run_demo is True and demo_config is True:
         # Setup octave for data visualization and storage
-        print("Initializing Octave database and visualizer")
+        print("Initializing Octave database and visualizer...")
         octave.addpath('./')
-        octave.demo_init(data_file)
-        # Wait for Octave initialization to complete
-        time.sleep(0.5)
+        try:
+            octave.demo_init(data_file)
+            # Wait for Octave initialization to complete
+            time.sleep(0.5)
+        except Exception as e:
+            print("Failed to initialize demo script: {}".format(e))
+            print("Disabling Octave script...")
+            run_demo = False
     else:
         # Turn off demo if oct2py module not present or config to not demo
-        print("Disabling Octave script")
+        print("Disabling Octave script...")
         run_demo = False
 
     loop = asyncio.get_event_loop()

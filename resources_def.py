@@ -3,15 +3,6 @@ import datetime
 
 from defs import *
 
-""" CoAP content format codes by media types
-    Reference [RFC7252, Section 12.3]: http://tools.ietf.org/html/rfc7252 """
-# plain text/string encoded in utf-8
-TEXT_PLAIN_CODE = 0
-# application/link-format: describe hosted resources, attributes and relationships
-LINK_FORMAT_CODE = 40
-# application/json
-JSON_FORMAT_CODE = 50
-
 # payload wrapper fields
 NAME_FIELD = 'name'
 ACTIVE_FIELD = 'active'
