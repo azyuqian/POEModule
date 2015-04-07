@@ -415,7 +415,7 @@ class Temperature(HygroThermo):
     def __init__(self):
         super(Temperature, self).__init__()
 
-        self.observe_period = 3
+        self.observe_period = 5
         self.fp_format = r_defs.DEFAULT_FP_FORMAT
         self.payload = PayloadTable('temperature', True, self.observe_period)
 
@@ -477,7 +477,7 @@ class Humidity(HygroThermo):
     def __init__(self):
         super(Humidity, self).__init__()
 
-        self.observe_period = 3
+        self.observe_period = 5
         self.fp_format = r_defs.DEFAULT_FP_FORMAT
         self.payload = PayloadTable('humidity', True, self.observe_period)
 

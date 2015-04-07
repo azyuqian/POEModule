@@ -50,6 +50,7 @@ def plot_octave(jpayload):
         #print("payload is {}".format(jpayload))
         time = []
         data = []
+        plot_i = -1
 
         try:
             jvalue = json.loads(jpayload['data'])
@@ -84,6 +85,17 @@ def plot_octave(jpayload):
                 data += [float('NaN'), float('NaN'), float('NaN'),
                          float('NaN'), float('NaN'), float('NaN'),
                          float(jvalue['leftright']), float(jvalue['updown'])]
+                plot_i = 1;
+            elif jpayload['name'] == 'temperature':
+                data += [float('NaN'), float('NaN'), float('NaN'),
+                         float(jvalue['temperature']),
+                         float('NaN'), float('NaN'), float('NaN'), float('NaN')]
+                plot_i = 2;
+            elif jpayload['name'] == 'humidity':
+                data += [float('NaN'), float('NaN'), float('NaN'), float('NaN'),
+                         float(jvalue['humidity']),
+                         float('NaN'), float('NaN'), float('NaN')]
+                plot_i = 3;
             else:
                 print("Unknown data. Skip plotting...\n")
                 return
@@ -105,7 +117,7 @@ def plot_octave(jpayload):
         print("data to plot: {}".format(data))
 
         try:
-            octave.demo_update(data_file, data)
+            octave.demo_update(data_file, data, plot_i)
         except Exception as e:
             raise RuntimeError("Failed to plot: {}".format(e));
 
@@ -216,14 +228,23 @@ def observe_impl(url='', payload=""):
 
 
 def client_console():
+    global run_demo
+
     # First, print general info and help menu on console when client starts
     print("Connecting to server {}...\n".format(server_IP))
     print("Probing available resources...")
+
+    # Temporarily disable plotting
+    run_demo_cache = run_demo
+    run_demo = False
     for r in resources:
         # Test GET for each known resource
         yield from Commands.do_resource(r, 'GET')
         print("Success! Resource {} is available at path /{}\n".format(r, resources[r]['url']))
     print("Done probing...")
+    # Restore plotting configuration
+    run_demo = run_demo_cache
+
     print("Initializing command prompt...\n")
     Commands.do_help()
 
