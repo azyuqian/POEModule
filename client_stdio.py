@@ -230,10 +230,12 @@ def observe_impl(url='', payload=""):
 def client_console():
     global run_demo
 
-    # First, print general info and help menu on console when client starts
-    print("Connecting to server {}...\n".format(server_IP))
-    print("Probing available resources...")
+    # Probe server first
+    print("\nConnecting to server {}...".format(server_IP))
+    # Initilization will be blocked here if server not available
+    yield from Commands.do_probe()
 
+    print("\nProbing available resources...")
     # Temporarily disable plotting
     run_demo_cache = run_demo
     run_demo = False
@@ -245,6 +247,7 @@ def client_console():
     # Restore plotting configuration
     run_demo = run_demo_cache
 
+    # Print general info and help menu on console when client starts
     print("Initializing command prompt...\n")
     Commands.do_help()
 
@@ -275,7 +278,7 @@ def client_console():
         else:
             try:
                 # do_help and do_IP are not asyncio coroutine
-                if method.__name__ == 'do_help' or method.__name__ == 'do_IP':
+                if method.__name__ == 'do_help' or method.__name__ == 'do_ip':
                     method(*args)
                 else:
                     yield from method(*args)
@@ -306,14 +309,15 @@ class Commands():
 
     @staticmethod
     def do_ip(ip=None):
-        """ read or change server IP
-            default IP is given by config.json upon client initialization
+        """ read or change server IP.
 
+        Default IP is given by config.json upon client initialization
         If no parameter is given, return server IP;
         otherwise, set server IP to given value
-        Example: >>>IP 192.168.2.20
-        Example: >>>IP localhost
-        Example: >>>IP
+
+        Example: >>>ip 192.168.2.20
+        Example: >>>ip localhost
+        Example: >>>ip
 
         :param ip: server IP to set
         :type ip: str
@@ -326,6 +330,18 @@ class Commands():
             print("Server IP was {}".format(server_IP))
             server_IP = ip
             print("Server IP is set to {}".format(IP))
+
+    @staticmethod
+    @asyncio.coroutine
+    def do_probe(*args):
+        """ Check whether server is alive
+
+        Example: >>>probe
+
+        :param args: None
+        """
+        # send GET request to Root resource to check on server
+        yield from get_impl()
 
     @staticmethod
     @asyncio.coroutine

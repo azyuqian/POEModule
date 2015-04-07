@@ -32,6 +32,16 @@ class RootResource(resource.Resource):
     def __init__(self, root):
         resource.Resource.__init__(self)
         self.root = root
+        self.content = "Server Awake!"
+
+    @asyncio.coroutine
+    def render_GET(self, request):
+        payload = self.content.encode(UTF8)
+
+        response = aiocoap.Message(code=aiocoap.VALID, payload=payload)
+        response.opt.content_format = r_defs.TEXT_PLAIN_CODE
+
+        return response
 
     @asyncio.coroutine
     def render_POST(self, request):
