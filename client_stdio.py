@@ -39,6 +39,8 @@ logging.basicConfig(level=logging.INFO)
 
 
 def plot_octave(jpayload):
+    # FIXME: plotting function should be more dynamic, to match the configurability of
+    #       the rest of the program
     '''
     Example:
         octave.database_init('data.txt')
@@ -232,7 +234,7 @@ def client_console():
 
     # Probe server first
     print("\nConnecting to server {}...".format(server_IP))
-    # Initilization will be blocked here if server not available
+    # Initialization will be blocked here if server not available
     yield from Commands.do_probe()
 
     print("\nProbing available resources...")
@@ -256,7 +258,7 @@ def client_console():
         cmdline = input(">>>")
         cmd_parts = cmdline.split()
 
-        # Handle empaty input
+        # Handle empty input
         if len(cmd_parts) is 0:
             continue
 
@@ -277,8 +279,10 @@ def client_console():
 
         else:
             try:
-                # do_help and do_IP are not asyncio coroutine
-                if method.__name__ == 'do_help' or method.__name__ == 'do_ip':
+                # do_help and do_ip and do_exit are not asyncio coroutine
+                if method.__name__ == 'do_help' or \
+                   method.__name__ == 'do_ip' or \
+                   method.__name__ == 'do_exit':
                     method(*args)
                 else:
                     yield from method(*args)
@@ -329,7 +333,19 @@ class Commands():
         else:
             print("Server IP was {}".format(server_IP))
             server_IP = ip
-            print("Server IP is set to {}".format(IP))
+            print("Server IP is set to {}".format(ip))
+
+    @staticmethod
+    def do_exit(*args):
+        """ Terminate client program
+
+        Example: >>>exit
+
+        :param args: None
+        """
+        print("Goodbye!")
+        print("Exiting...")
+        sys.exit(0)
 
     @staticmethod
     @asyncio.coroutine
