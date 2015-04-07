@@ -38,17 +38,7 @@ function [ PARA ] = demo_update( fName, newData, whatToPlot )
 %have to modify time_inst and #row&cols for ploting
 
     time_inst = newData(end-2)*SECPERHOUR+newData(end-1)*SECPERMIN+newData(end);
-    
-    %n_time_para = 6;
-    plot_n_row = 1;
-    plot_n_col = 1;
-    
-    tem_min = -20;
-    tem_max = 100;
-    hum_min = 0;
-    hum_max = 100;
-    
-    
+
     Xmin = 260; Xmax = 763; %xcentre = 516;
     Ymin = 253; Ymax = 769; %ycentre = 510;
     
@@ -92,10 +82,7 @@ function [ PARA ] = demo_update( fName, newData, whatToPlot )
                 x = PARA{7}(end,1); y = PARA{8}(end,1); plot(x,y,'r.','markersize',40); grid;
                 xlabel('Position in x'); ylabel('Position in y');
                 title('Joystick Position'); set(gca,'FontSize',12);
-                axis([Xmin,Xmax,Ymin,Ymax]); 
-                %ax = gca;
-                %ax.XTickLabel = {'Leftmost','Centre','Rightmost'};
-                %ax.YTickLabel = {'Uppermost','Centre','Lowermost'};
+                axis([Xmin,Xmax,Ymin,Ymax]);
             otherwise
                 if(~isempty(PARA{toPlot}))
                     x = PARA{toPlot}(:,end); y = PARA{toPlot}(:,1);plot(x,y);
@@ -117,13 +104,10 @@ function [ PARA ] = demo_update( fName, newData, whatToPlot )
                 title('Acceleration Profile in z'); ylabel('Acceleration in z (ms^{-2})');
             case 4
                 title('Temperature Profile'); ylabel('Temperature (Celcius)');
-                ylim([tem_min,tem_max]);
             case 5
                 title('Humidity Profile'); ylabel('Relative Humidity (%)');
-                ylim([hum_min,hum_max]);
             case 6
                 title('Motion Detection'); ylabel('Motion Detected? (1 for yes, 0 otherwise)');
-                ylim([0,1]);
         end
         
         save(fNameToSave,'PARA','-v6');    
