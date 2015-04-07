@@ -1,4 +1,4 @@
-function [ PARA ] = demo_update( fName, newData )
+function [ PARA ] = demo_update( fName, newData, whatToPlot )
 % data are in the format of :
 % PARA1 PARA2 ... PARAn yyyy mm dd hh minmin ss 
 % i.e. last six numbers for time
@@ -10,6 +10,23 @@ function [ PARA ] = demo_update( fName, newData )
 % test_update(filename,data_update);
 % 
 % or: test_init('test.txt',[1,NaN,3,55,0,9999,4,9999,6,2015,04,01,01,02,03]);
+
+    switch whatToPlot
+        case 1 % Joystick
+            toPlot = 7;
+        case 2 % Temperature
+            toPlot = 4;
+        case 3 % Humidity
+            toPlot = 5;
+        case 4 % X
+            toPlot = 1;
+        case 5 % Y
+            toPlot = 2;
+        case 6 % Z
+            toPlot = 3;
+        case 7 % Motion
+            toPlot = 6;
+    end
 
     SECPERSEC  = 1;
     SECPERMIN  = 60*SECPERSEC;
@@ -25,10 +42,16 @@ function [ PARA ] = demo_update( fName, newData )
     %n_time_para = 6;
     plot_n_row = 1;
     plot_n_col = 1;
-
+    
+    tem_min = -20;
+    tem_max = 100;
+    hum_min = 0;
+    hum_max = 100;
+    
+    
     Xmin = 260; Xmax = 763; %xcentre = 516;
     Ymin = 253; Ymax = 769; %ycentre = 510;
-
+    
     newData(~(newData<9999)) = NaN;
     
     [~,name,ext] = fileparts(fName);
@@ -63,21 +86,47 @@ function [ PARA ] = demo_update( fName, newData )
         end
         
         PARA(LOGICAL_TEMP) = PARA_UPDATE;
-
-        subplot(plot_n_row,plot_n_col,1);
-        if(~isempty(PARA{7}))
-            x = PARA{7}(end,1); y = PARA{8}(end,1); plot(x,y,'r.','markersize', 40); grid;
-            xlabel('Position in x'); ylabel('Position in y');
-            title('Joystick Position'); set(gca,'FontSize',12);
-            axis([Xmin,Xmax,Ymin,Ymax]); 
-            %ax = gca;
-            %ax.XTickLabel = {'Leftmost','Centre','Rightmost'};
-            %ax.YTickLabel = {'Uppermost','Centre','Lowermost'};
-        end
-%         subplot(plot_n_row,plot_n_col,5); title('Humidity Profile');
-%         ylabel('Relative Humidity (%)');       ylim([hum_min,hum_max]);
         
-        save(fNameToSave,'PARA','-v6');
+        switch toPlot
+            case 7  % Joystick
+                x = PARA{7}(end,1); y = PARA{8}(end,1); plot(x,y,'r.','markersize',40); grid;
+                xlabel('Position in x'); ylabel('Position in y');
+                title('Joystick Position'); set(gca,'FontSize',12);
+                axis([Xmin,Xmax,Ymin,Ymax]); 
+                %ax = gca;
+                %ax.XTickLabel = {'Leftmost','Centre','Rightmost'};
+                %ax.YTickLabel = {'Uppermost','Centre','Lowermost'};
+            otherwise
+                if(~isempty(PARA{toPlot}))
+                    x = PARA{toPlot}(:,end); y = PARA{toPlot}(:,1);plot(x,y);
+                    xlabel('Time Elapsed (s)'); grid; set(gca,'FontSize',12);
+                    if(x(end)>x(1))
+                        xlim([x(1),x(end)]);
+                    elseif(x(end)<x(1))
+                        error('Error in time calculation. (x(end) <= x(1))');
+                    end
+                end
+        end
+        
+        switch toPlot
+            case 1
+                title('Acceleration Profile in x'); ylabel('Acceleration in x (ms^{-2})'); 
+            case 2
+                title('Acceleration Profile in y'); ylabel('Acceleration in y (ms^{-2})');
+            case 3 
+                title('Acceleration Profile in z'); ylabel('Acceleration in z (ms^{-2})');
+            case 4
+                title('Temperature Profile'); ylabel('Temperature (Celcius)');
+                ylim([tem_min,tem_max]);
+            case 5
+                title('Humidity Profile'); ylabel('Relative Humidity (%)');
+                ylim([hum_min,hum_max]);
+            case 6
+                title('Motion Detection'); ylabel('Motion Detected? (1 for yes, 0 otherwise)');
+                ylim([0,1]);
+        end
+        
+        save(fNameToSave,'PARA','-v6');    
     end
         
 end

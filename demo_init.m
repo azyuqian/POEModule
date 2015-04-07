@@ -61,17 +61,6 @@ function [ PARA ] = demo_init( fName )
             LOGIC_TEMP = TEMP < 9999;
             PARA{i} = [TEMP(LOGIC_TEMP), T_TEMP(LOGIC_TEMP)];
         end
-
-        subplot(plot_n_row,plot_n_col,1);
-        if(~isempty(PARA{7}))
-            x = PARA{7}(end,1); y = PARA{8}(end,1); plot(x,y,'r.','markersize', 40); grid;
-            xlabel('Position in x'); ylabel('Position in y');
-            title('Joystick Position'); set(gca,'FontSize',12);
-            axis([Xmin,Xmax,Ymin,Ymax]);
-            %ax = gca;
-            %ax.XTickLabel = {'Leftmost','Centre','Rightmost'};
-            %ax.YTickLabel = {'Uppermost','Centre','Lowermost'};
-        end
     else
         if (~exist(fNameToSave,'file'))
             disp('An empty ".mat" file is also created.');
