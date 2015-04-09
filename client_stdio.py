@@ -7,7 +7,6 @@ import socket
 import functools
 import signal
 
-
 from aiocoap import *
 from defs import *
 
@@ -33,11 +32,12 @@ except Exception as e:
 else:
     run_demo = True
 
-
+# logging configuration
 logging.basicConfig(level=logging.INFO)
 # FIXME: Add logging function to replace "print" in the code
 
 
+# Helper functions
 def plot_octave(jpayload):
     # FIXME: plotting function should be more dynamic, to match the configurability of
     #       the rest of the program
@@ -156,6 +156,8 @@ def end_observation(loop):
     asyncio.set_event_loop(client_event_loop)
     print("Switched back to client console...")
 
+
+# CoAP request implementation
 @asyncio.coroutine
 def post_impl(jargs):
     context = yield from Context.create_client_context()
@@ -229,67 +231,7 @@ def observe_impl(url='', payload=""):
     print("Observation exits due to {}".format(exit_reason))
 
 
-def client_console():
-    global run_demo
-
-    # Probe server first
-    print("\nConnecting to server {}...".format(server_IP))
-    # Initialization will be blocked here if server not available
-    yield from Commands.do_probe()
-
-    print("\nProbing available resources...")
-    # Temporarily disable plotting
-    run_demo_cache = run_demo
-    run_demo = False
-    for r in resources:
-        # Test GET for each known resource
-        yield from Commands.do_resource(r, 'GET')
-        print("Success! Resource {} is available at path /{}\n".format(r, resources[r]['url']))
-    print("Done probing...")
-    # Restore plotting configuration
-    run_demo = run_demo_cache
-
-    # Print general info and help menu on console when client starts
-    print("Initializing command prompt...\n")
-    Commands.do_help()
-
-    # Start acquiring user input
-    while True:
-        cmdline = input(">>>")
-        cmd_parts = cmdline.split()
-
-        # Handle empty input
-        if len(cmd_parts) is 0:
-            continue
-
-        #print("cmd = {}".format(cmd_parts))
-        cmd = cmd_parts[0]
-        args = cmd_parts[1:]
-
-        try:
-            method = getattr(Commands, 'do_' + cmd)
-        except AttributeError:
-            if cmd in resources:
-                try:
-                    yield from Commands.do_resource(cmd, *args)
-                except Exception as e:
-                    print("Error: {}".format(e))
-            else:
-                print("Error: no such command.")
-
-        else:
-            try:
-                # do_help and do_ip and do_exit are not asyncio coroutine
-                if method.__name__ == 'do_help' or \
-                   method.__name__ == 'do_ip' or \
-                   method.__name__ == 'do_exit':
-                    method(*args)
-                else:
-                    yield from method(*args)
-            except Exception as e:
-                print("Error: {}".format(e))
-
-
+# class to hold all the implemented commands
 class Commands():
     @staticmethod
     def do_help(command=None):
@@ -510,6 +452,68 @@ class Commands():
             raise RuntimeError("Failed to complete CoAP request: {}".format(e))
 
 
+# Client console main program
+def client_console():
+    global run_demo
+
+    # Probe server first
+    print("\nConnecting to server {}...".format(server_IP))
+    # Initialization will be blocked here if server not available
+    yield from Commands.do_probe()
+
+    print("\nProbing available resources...")
+    # Temporarily disable plotting
+    run_demo_cache = run_demo
+    run_demo = False
+    for r in resources:
+        # Test GET for each known resource
+        yield from Commands.do_resource(r, 'GET')
+        print("Success! Resource {} is available at path /{}\n".format(r, resources[r]['url']))
+    print("Done probing...")
+    # Restore plotting configuration
+    run_demo = run_demo_cache
+
+    # Print general info and help menu on console when client starts
+    print("Initializing command prompt...\n")
+    Commands.do_help()
+
+    # Start acquiring user input
+    while True:
+        cmdline = input(">>>")
+        cmd_parts = cmdline.split()
+
+        # Handle empty input
+        if len(cmd_parts) is 0:
+            continue
+
+        #print("cmd = {}".format(cmd_parts))
+        cmd = cmd_parts[0]
+        args = cmd_parts[1:]
+
+        try:
+            method = getattr(Commands, 'do_' + cmd)
+        except AttributeError:
+            if cmd in resources:
+                try:
+                    yield from Commands.do_resource(cmd, *args)
+                except Exception as e:
+                    print("Error: {}".format(e))
+            else:
+                print("Error: no such command.")
+
+        else:
+            try:
+                # do_help and do_ip and do_exit are not asyncio coroutine
+                if method.__name__ == 'do_help' or \
+                   method.__name__ == 'do_ip' or \
+                   method.__name__ == 'do_exit':
+                    method(*args)
+                else:
+                    yield from method(*args)
+            except Exception as e:
+                print("Error: {}".format(e))
+
+
 def main():
     global server_IP
     global resources
@@ -560,6 +564,7 @@ def main():
         loop = asyncio.get_event_loop()
         # Keep a global record of the event loop for client
         client_event_loop = loop
+        # Start client console
         loop.run_until_complete(client_console())
     except Exception as e:
         print("{}".format(e))
