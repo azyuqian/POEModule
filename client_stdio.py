@@ -568,9 +568,6 @@ def main():
         loop.run_until_complete(client_console())
     except Exception as e:
         print("{}".format(e))
-    finally:
-        loop.close()
-        Commands.do_exit()
 
 if __name__ == '__main__':
     main()
