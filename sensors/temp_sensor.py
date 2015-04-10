@@ -237,14 +237,23 @@ if platform.machine() != 'x86_64':
 
 
 class WaitingSht15Mock():
+    import random
+    random.seed()
+
     temperature = 25
     humidity = 99
 
     def read_temperature_and_Humidity(self):
+        # Theoretical limit from datasheet
+        # https://www.adafruit.com/datasheets/Sensirion_Humidity_SHT1x_Datasheet_V5.pdf
+        self.temperature = self.random.uniform(-40.0, 123.8)
+        self.humidity = self.random.uniform(0.0, 100.0)
         return self.temperature, self.humidity
 
     def read_humidity(self):
+        self.humidity = self.random.uniform(0.0, 100.0)
         return self.humidity
 
     def read_temperature_C(self):
+        self.temperature = self.random.uniform(-40.0, 123.8)
         return self.temperature

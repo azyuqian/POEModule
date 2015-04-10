@@ -35,8 +35,13 @@ if platform.machine() != 'x86_64':
             else:
                 return True
 
+
 class PirMock():
+    import random
+    random.seed()
+
     motion = True
 
     def has_motion(self):
+        self.motion = bool(self.random.randint(0, 1))
         return self.motion

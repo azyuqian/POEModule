@@ -79,18 +79,32 @@ if platform.machine() != 'x86_64':
 
 
 class MCP3008Mock():
+    import random
+    random.seed()
+
+    # default parameters
     adc = [0xff, 0xff, 0xff]
-    x = 1
-    y = 1
-    z = 1
-    leftright = 555
-    updown = 333
+    x = 1.0
+    y = 0.0
+    z = 0.0
+    leftright = 516
+    updown = 510
 
     def read_channel_raw(self, channel):
+        self.adc[1] = self.random.randint(0, 0xff)
+        self.adc[2] = self.random.randint(0, 0xff)
         return ((self.adc[1] & 0x03) << 8) + self.adc[2]
 
     def acceleration(self):
+        # Theoretical limits provided by datasheet
+        # https://www.sparkfun.com/datasheets/Components/SMD/adxl335.pdf
+        self.x = self.random.uniform(-3.0, 3.0)
+        self.y = self.random.uniform(-3.0, 3.0)
+        self.z = self.random.uniform(-3.0, 3.0)
         return self.x, self.y, self.z
 
     def joystick(self):
+        # Experimental limits at 3.3V
+        self.leftright = self.random.randint(260, 763)
+        self.updown = self.random.randint(253, 769)
         return self.leftright, self.updown
