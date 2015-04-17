@@ -1,15 +1,32 @@
-function [ PARA ] = demo_init( fName )
-% data are in the format of :
-% PARA1 PARA2 ... PARAn yyyy mm dd hh mm ss.ssss
-% i.e. last six numbers for time
-% e.g. [1,2,3,55,0,NaN,4,9999,2015,04,01,01,02,03]
-
-% example use:
-% filename = 'data.txt';
-% test_init(filename);
+%{
+%   Created on April 1, 2015
+%   Renamed from test_init.m on April 2, 2015
+%   Last modified on April 16, 2015 by Yaodong Yu
 %
-% or: test_init('test.txt')
+%   @author: Zhen Hong
+%
+%   This is initialization script for Octave plotting program as a part of demonstration of
+%       UBC ECE 2014 Capstone Project #94
+%
+%   TODO: this script should be more dynamic in terms of processing various length of params
+%}
 
+function [PARA] = demo_init(fName)
+%{
+% This function initializes the plotting program by parsing all existing data entries in .txt data file to
+%   .mat Matlab file that serves as a database
+%
+% param str fName: full name of the .txt data file
+%
+% Example usage:
+% ``filename = 'data.txt';``
+% ``demo_init(filename);``
+% or simply:
+% ``demo_init('test.txt');``
+%}
+
+    % Time conversion constants
+    n_time_para = 6;
     SECPERSEC  = 1;
     SECPERMIN  = 60*SECPERSEC;
     SECPERHOUR = 60*SECPERMIN;
@@ -17,30 +34,18 @@ function [ PARA ] = demo_init( fName )
     SECPERMON  = 30*SECPERDAY;
     SECPERYEAR = 12*SECPERMON; %#ok<NASGU>
 
-    %JOYSTICK_PLOT = 1
-    %HYGROTHERMO_PLOT = 2
-
-%have to modify time_inst and #row&cols for plotting
-
-    n_time_para = 6;
-    plot_n_row = 1;
-    plot_n_col = 1;
-
-    Xmin = 260; Xmax = 763; %xcentre = 516;
-    Ymin = 253; Ymax = 769; %ycentre = 510;
-
-    [~,name,ext] = fileparts(fName);
-    fNameToSave = strcat(name,'.mat');
-    if (~strcmp(ext,'.txt'))
+    [~, name, ext] = fileparts(fName);
+    fNameToSave = strcat(name, '.mat');
+    if(~strcmp(ext, '.txt'))
         disp('Database file should instead have extension ".txt",');
         disp('looking for corresponding".txt"...');
-        fName = strcat(name,'.txt');
+        fName = strcat(name, '.txt');
     end
 
-    if (~exist(fName,'file'))
+    if (~exist(fName, 'file'))
         disp('File does not exist, a new one will be created.');
-        temp = []; %#ok<NASGU>
-        save(fName,'temp','-ascii');
+        temp = [];
+        save(fName, 'temp', '-ascii');
     end
 
     try
@@ -50,18 +55,19 @@ function [ PARA ] = demo_init( fName )
         disp("Unable to load file:"); disp(lasterr);
     end
 
-    if (~isempty(data) || size(data,2)>=(n_time_para+1))
-        %numrow = size(data,1);  % #time instances
-        numpara = size(data,2)-n_time_para;  % #parameters
+    if (~isempty(data))
+        numrow = size(data, 1);  %#ok<NASGU>     % time instances
+        numpara = size(data, 2) - n_time_para;     % parameters
 
-        PARA=cell(numpara,1);
+        % Parse each time instance in data file and store in cell format
+        PARA = cell(numpara, 1);
         for i = 1:numpara
-            TEMP = data(:,i);
-            T_TEMP = data(:,end-2)*SECPERHOUR+data(:,end-1)*SECPERMIN+data(:,end);
+            TEMP = data(:, i);
+            T_TEMP = data(:, end-2)*SECPERHOUR + data(:, end-1)*SECPERMIN + data(:, end);
             LOGIC_TEMP = TEMP < 9999;
             PARA{i} = [TEMP(LOGIC_TEMP), T_TEMP(LOGIC_TEMP)];
         end
-    else
+    else    % Empty data file (.txt)
         if (~exist(fNameToSave,'file'))
             disp('An empty ".mat" file is also created.');
         end
@@ -69,7 +75,7 @@ function [ PARA ] = demo_init( fName )
         PARA = [];
     end
 
-    save(fNameToSave,'PARA','-v6');
+    save(fNameToSave, 'PARA', '-v6');
 
 end
 

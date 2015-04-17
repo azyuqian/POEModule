@@ -1,12 +1,17 @@
-#!/usr/bin/env python3
+"""
+    Created on November 21, 2014
+    Last modified on April 17, 2015 by Yaodong Yu
 
-# This file is part of the Python aiocoap library project.
-#
-# Copyright (c) 2012-2014 Maciej Wasilak <http://sixpinetrees.blogspot.com/>,
-#               2013-2014 Christian Amsüss <c.amsuess@energyharvesting.at>
-#
-# aiocoap is free software, this file is published under the MIT license as
-# described in the accompanying LICENSE file.
+    @author: Ruibing Zhao
+    @author: Peter Zhang
+
+    This is the main CoAP server running on Raspberry Pi as a part of UBC ECE 2014 Capstone Project #94.
+    The implementation of this CoAP client is based on aiocoap module
+
+    Reference: https://aiocoap.readthedocs.org/
+
+    Python3.4 is required
+"""
 
 import logging
 import json
@@ -21,11 +26,14 @@ import resources as r
 # logging setup
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('coap-server').setLevel(logging.DEBUG)
-# FIXME: Add logging function to replace "print" in the code
+# TODO: Add logging function to replace "print" in the code
 
 
 def main():
-    """ Create resource tree """
+    """
+    Create resource tree from given configuration file
+    """
+
     root = Site()
 
     # default resources to add
@@ -64,13 +72,13 @@ def main():
 
         print("{} resource added to path /{}".format(sensor['name'], sensor['url']))
         '''
+        # Debug information: print all fields of each resource in configuration file
         for entry in sensor:
             if entry != 'name' and entry != 'url':
                 print("{}:{}".format(entry, sensor[entry]))
         '''
 
     asyncio.async(aiocoap.Context.create_server_context(root))
-
     asyncio.get_event_loop().run_forever()
 
 

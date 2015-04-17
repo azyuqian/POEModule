@@ -1,3 +1,18 @@
+"""
+    Created on November 22, 2014
+    Last modified on April 16, 2015 by Yaodong Yu
+
+    @author: Ruibing Zhao
+    @author: Yaodong Yu
+
+    This is a command line tool developed as a CoAP client for demonstration of UBC ECE 2014 Capstone Project #94.
+    The implementation of this CoAP client is based on aiocoap module
+
+    Reference: https://aiocoap.readthedocs.org/
+
+    Python3.4 is required
+"""
+
 import sys
 import time
 import logging
@@ -34,20 +49,24 @@ else:
 
 # logging configuration
 logging.basicConfig(level=logging.INFO)
-# FIXME: Add logging function to replace "print" in the code
+# TODO: Add logging function to replace "print" in the code
 
 
-# Helper functions
 def plot_octave(jpayload):
-    # FIXME: plotting function should be more dynamic, to match the configurability of
-    #       the rest of the program
-    '''
+    # TODO: plotting function should be more dynamic, to match the configurability of the rest of the program
+    """
+    Function to direct resource data to Octave program to plot
+
     Example:
-        octave.database_init('data.txt')
-        acceleration:              x  y  z  tem,  hum   year  mon day hh  mm  ss
-        octave.update_plot('data.txt', [3, 3, 3, None, None, 1111, 11, 11, 11, 11, 11])
-        octave.save_database('data.txt')
-    '''
+    octave.database_init('data.txt')
+                                    x  y  z  temp   humid   motion  joystickX,Y  year  mon day hh  mm  ss
+    octave.update_plot('data.txt', [3, 3, 3, NaN,   NaN,    NaN,    Nan,    NaN, 1111, 11, 11, 11, 11, 11])
+    octave.save_database('data.txt')
+
+    :param dict jpayload: resource object in dict(JSON) format
+    :raises AttributeError: failed to parse jpayload for resource data
+    :raises RuntimeError: failed to complete octave plotting script
+    """
     if run_demo is True and jpayload['name'] in resources:
         #print("payload is {}".format(jpayload))
         time = []
@@ -55,34 +74,9 @@ def plot_octave(jpayload):
         plot_i = -1
 
         try:
+            # TODO: data format for plotting should be more dynamic
             jvalue = json.loads(jpayload['data'])
             #print("{}".format(jvalue))
-            '''
-            if jpayload['name'] == 'acceleration':
-                data += [float(jvalue['x']), float(jvalue['y']), float(jvalue['z']),
-                         float('NaN'), float('NaN'), float('NaN'), float('NaN'), float('NaN')]
-            elif jpayload['name'] == 'temperature':
-                data += [float('NaN'), float('NaN'), float('NaN'),
-                         float(jvalue['temperature']),
-                         float('NaN'), float('NaN'), float('NaN'), float('NaN')]
-            elif jpayload['name'] == 'humidity':
-                data += [float('NaN'), float('NaN'), float('NaN'), float('NaN'),
-                         float(jvalue['humidity']),
-                         float('NaN'), float('NaN'), float('NaN')]
-            elif jpayload['name'] == 'motion':
-                data += [float('NaN'), float('NaN'), float('NaN'), float('NaN'), float('NaN'),
-                         bool(jvalue['motion']),
-                         float('NaN'), float('NaN')]
-            elif jpayload['name'] == 'joystick':
-                data += [float('NaN'), float('NaN'), float('NaN'),
-                         float('NaN'), float('NaN'), float('NaN'),
-                         float(jvalue['leftright']), float(jvalue['updown'])]
-            else:
-                print("Warning: Unknown data\n")
-                data += [float('NaN'), float('NaN'), float('NaN'),
-                         float('NaN'), float('NaN'), float('NaN'),
-                         float('NaN'), float('NaN')]
-            '''
             if jpayload['name'] == 'joystick':
                 data += [float('NaN'), float('NaN'), float('NaN'),
                          float('NaN'), float('NaN'), float('NaN'),
@@ -121,10 +115,19 @@ def plot_octave(jpayload):
         try:
             octave.demo_update(data_file, data, plot_i)
         except Exception as e:
+            # Do not want to disable plotting here since it may be a one-time failure
+            #   on plotting script
             raise RuntimeError("Failed to plot: {}".format(e));
 
 
 def incoming_data(response):
+    """
+    Function used to deal with response
+
+    :var bool run_demo: (global) whether to run Octave demonstration
+    :param response: response from CoAP server
+    :param response: aiocoap.message.Message
+    """
     global run_demo
 
     payload = response.payload.decode(UTF8)
@@ -144,6 +147,11 @@ def incoming_data(response):
 
 
 def end_observation(loop):
+    """
+    Callback function used for ending observation to resource on client side.
+
+    :param BaseEventLoop loop: event loop for observing resource
+    """
     # FIXME: method should actually end observation on server.
     #       Now, it only deals with client side
 
@@ -157,9 +165,14 @@ def end_observation(loop):
     print("Switched back to client console...")
 
 
-# CoAP request implementation
 @asyncio.coroutine
 def post_impl(jargs):
+    """
+    Implementation of CoAP POST request
+
+    :param str jargs: parameter of resources to be put in JSON format
+    :raises RuntimeError: incorrect Context for client
+    """
     context = yield from Context.create_client_context()
 
     request = Message(code=POST, payload=jargs.encode(UTF8))
@@ -173,7 +186,13 @@ def post_impl(jargs):
         incoming_data(response)
 
 @asyncio.coroutine
-def get_impl(url='', payload=""):
+def get_impl(url=''):
+    """
+    Implementation of CoAP GET request
+
+    :param str url: url to locate resource
+    :raises RuntimeError: incorrect Context for client
+    """
     context = yield from Context.create_client_context()
 
     request = Message(code=GET)
@@ -188,6 +207,13 @@ def get_impl(url='', payload=""):
 
 @asyncio.coroutine
 def put_impl(url='', payload=""):
+    """
+    Implementation of CoAP Put request
+
+    :param str url: url to locate resource
+    :param str payload: content to PUT to resource
+    :raises RuntimeError: incorrect Context for client
+    """
     context = yield from Context.create_client_context()
 
     yield from asyncio.sleep(2)
@@ -203,7 +229,14 @@ def put_impl(url='', payload=""):
         incoming_data(response)
 
 @asyncio.coroutine
-def observe_impl(url='', payload=""):
+def observe_impl(url=''):
+    """
+    Implementation of CoAP Observe request
+
+    :param str url: url to locate resource
+    :raises NameError: cannot locate resource at given url
+    :raises RuntimeError: server responds code is unsuccessful
+    """
     context = yield from Context.create_client_context()
 
     request = Message(code=GET)
@@ -231,18 +264,21 @@ def observe_impl(url='', payload=""):
     print("Observation exits due to {}".format(exit_reason))
 
 
-# class to hold all the implemented commands
 class Commands():
+    """
+    Class to hold all the implemented commands
+    """
     @staticmethod
     def do_help(command=None):
-        """ print help menu
+        """
+        Print help menu
 
         If no command is given, list all available commands;
         otherwise, show __doc__ of given command.
-        Example: >>>help time
+        Example:
+        ``>>>help time``
 
-        :param command: of which command help is needed
-        :type command: str
+        :param str command: of which command help is needed
         """
         if command:
             print(getattr(Commands, 'do_'+command).__doc__)
@@ -255,18 +291,19 @@ class Commands():
 
     @staticmethod
     def do_ip(ip=None):
-        """ read or change server IP.
+        """
+        Read or change server IP.
 
         Default IP is given by config.json upon client initialization
-        If no parameter is given, return server IP;
-        otherwise, set server IP to given value
+        If no parameter is given, return server IP; otherwise, set server IP to given value
 
-        Example: >>>ip 192.168.2.20
-        Example: >>>ip localhost
-        Example: >>>ip
+        Examples:
+        ``>>>ip 192.168.2.20``
+        ``>>>ip localhost``
+        ``>>>ip``
 
-        :param ip: server IP to set
-        :type ip: str
+        :var str server_IP: (global) server IP address
+        :param str ip: server IP to set
         """
         global server_IP
 
@@ -279,11 +316,10 @@ class Commands():
 
     @staticmethod
     def do_exit(*args):
-        """ Terminate client program
+        """
+        Terminate client program using sys.exit
 
-        Example: >>>exit
-
-        :param args: None
+        Example: ``>>>exit``
         """
         print("Goodbye!")
         print("Exiting...")
@@ -292,11 +328,10 @@ class Commands():
     @staticmethod
     @asyncio.coroutine
     def do_probe(*args):
-        """ Check whether server is alive
+        """
+        Check whether server is alive
 
-        Example: >>>probe
-
-        :param args: None
+        Example: ``>>>probe``
         """
         # send GET request to Root resource to check on server
         yield from get_impl()
@@ -304,18 +339,24 @@ class Commands():
     @staticmethod
     @asyncio.coroutine
     def do_add(name, *args):
-        """ add new resource to server
+        """
+        Add new resource to server
 
-        Syntax: >>>add [name] -c [ADC_channel] (-u [url]) (-l [min] -m [max])
-                        (-o) (-f [observe_frequency]) (-h)
-        -h --help   detailed help page of arguments
+        Syntax: >>>add [name] -c [ADC_channel] (-u [url]) (-l [min] -m [max]) (-o) (-f [observe_frequency]) (-h)
+        -c --channel    ADC channel this resource is connected to
+        -u --url        url for the resource to post
+        -l --min        lower bound of the resource to be mapped to
+        -m --max        higher bound of the resource to be mapped to
+        -o --observe    observable resource
+        -f --frequency  frequency of observing this resource
+        -h --help       detailed help page of arguments
 
-        Example: >>>add new_r -c0 -u myR/r1 -l0 -m10 -o -f5
+        Example: ``>>>add new_r -c0 -u myR/r1 -l0 -m10 -o -f5``
 
-        :param name: name of the resource
-        :type code: str
-        :param args: option or payload of PUT request
-        :type args: str
+        :param str name: name of the resource
+        :param str[] args: option or payload of PUT request
+        :raises AttributeError: option argument(s) not integer
+        :raises RuntimeError: POST request failed
         """
         import argparse
 
@@ -390,19 +431,25 @@ class Commands():
     @staticmethod
     @asyncio.coroutine
     def do_resource(name, code='GET', *args):
-        """ General implementation of resource command for GET/PUT
+        """
+        General implementation of resource command for GET/PUT
+
+        Once observation starts, use Ctrl + c to end observation
 
         Syntax: >>>[resource] [code] ([-o]) ([payload])
         resource: full resource list can be acquired by help command
         code: GET/PUT
-        -o: observe
+        -o: following GET to observe this resource
 
-        :param name: name of the resource
-        :type code: str
-        :param code: type of CoAP request
-        :type code: str
-        :param args: option or payload of PUT request
-        :type args: str
+        Example: ``>>>temperature GET -o``
+        Example: ``>>>temperature PUT period 5``
+
+        :param str name: name of the resource
+        :param str code: type of CoAP request
+        :param str[] args: option or payload of PUT request
+        :raises AttributeError: resource name or url not found
+        :raises ValueError: invalid request code (not GET or PUT)
+        :raises RuntimeError: CoAP request failed
         """
         payload = " ".join(args)
         try:
@@ -421,7 +468,7 @@ class Commands():
                         asyncio.set_event_loop(loop)
 
                         try:
-                            # Set keyboard interrupt as method to end observation
+                            # Set keyboard interrupt Ctrl+c as method to end observation
                             for signame in ('SIGINT', 'SIGTERM'):
                                 loop.add_signal_handler(getattr(signal, signame),
                                                         functools.partial(end_observation, loop))
@@ -452,8 +499,16 @@ class Commands():
             raise RuntimeError("Failed to complete CoAP request: {}".format(e))
 
 
-# Client console main program
 def client_console():
+    """
+    Client command line tool
+
+    Initialize as CoAP clients and try contacting server. While
+    connecting, accept commands and resource requests from command
+    line, then call corresponded CoAP request implementation
+
+    :var bool run_demo: (global) whether to run Octave demonstration
+    """
     global run_demo
 
     # Probe server first
@@ -515,6 +570,17 @@ def client_console():
 
 
 def main():
+    """
+    Main function of the client program
+
+    Import parameters and configuration from config file, then start the event loop
+
+    :var str server_IP: (global) server IP address
+    :var dict resources: (global) list of available resources on server
+    :var str data_file: (global) file to store data for Octave plotting
+    :var bool run_demo: (global) whether to run Octave demonstration
+    :var BaseEventloop client_event_loop: (global) store client main event loop object
+    """
     global server_IP
     global resources
     global data_file
@@ -522,7 +588,7 @@ def main():
     global client_event_loop
 
     try:
-        # FIXME: resource info is better acquired from server, provided server's IP
+        # TODO: resource info is better acquired from server, provided server's IP
         with open('config.json') as config_file:
             data = json.load(config_file)
             server_IP = data['server']['IP']
