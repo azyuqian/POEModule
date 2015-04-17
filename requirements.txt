@@ -1,5 +1,6 @@
-spidev
 aiocoap
-RPi.GPIO
 asyncio
 oct2py
+RPi
+RPiMock
+spidev
